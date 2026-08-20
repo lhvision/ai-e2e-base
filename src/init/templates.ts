@@ -122,7 +122,7 @@ CDP_PORT=9222
 export function getExampleSpecTemplate(): string {
   return `import { test, expect } from './fixture'
 
-test('首页能够正常加载并呈现主要内容', async ({ gotoRoute, expect, aiAssert }) => {
+test('首页能够正常加载并呈现主要内容', async ({ gotoRoute, aiAssert }) => {
   // 1. 使用 gotoRoute 路由直达并智能等待网络就绪
   const page = await gotoRoute('/')
 
