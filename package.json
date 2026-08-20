@@ -1,0 +1,78 @@
+{
+  "name": "@lhvison/ai-e2e-base",
+  "version": "0.1.0",
+  "description": "Zero-browser-install AI E2E base library powered by Midscene & Playwright CDP",
+  "author": "lhvision",
+  "license": "MIT",
+  "keywords": [
+    "playwright",
+    "midscene",
+    "ai",
+    "e2e",
+    "cdp",
+    "testing",
+    "visual-regression",
+    "zero-install"
+  ],
+  "bin": {
+    "ai-e2e": "./dist/bin/cli.mjs"
+  },
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./chrome": {
+      "types": "./dist/chrome/index.d.mts",
+      "import": "./dist/chrome/index.mjs"
+    },
+    "./fixture": {
+      "types": "./dist/fixture/index.d.mts",
+      "import": "./dist/fixture/index.mjs"
+    },
+    "./runner": {
+      "types": "./dist/runner/index.d.mts",
+      "import": "./dist/runner/index.mjs"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.mts",
+      "import": "./dist/config/index.mjs"
+    },
+    "./init": {
+      "types": "./dist/init/index.d.mts",
+      "import": "./dist/init/index.mjs"
+    },
+    "./platform": {
+      "types": "./dist/platform/index.d.mts",
+      "import": "./dist/platform/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "doctor": "node ./dist/bin/cli.mjs doctor",
+    "chrome": "node ./dist/bin/cli.mjs chrome",
+    "prepublishOnly": "tsdown"
+  },
+  "dependencies": {
+    "@midscene/cli": "^1.10.12",
+    "@midscene/web": "^1.10.12",
+    "@playwright/test": "^1.62.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "tsdown": "^0.22.14",
+    "typescript": "^6.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}
