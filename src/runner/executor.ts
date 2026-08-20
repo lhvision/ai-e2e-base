@@ -80,7 +80,7 @@ export interface RunMidsceneYamlResult {
  *
  * @example
  * ```ts
- * import { runPlaywright } from '@lhvison/ai-e2e-base'
+ * import { runPlaywright } from '@lhvision/ai-e2e-base'
  *
  * const res = await runPlaywright({
  *   grep: '用户登录',
@@ -193,7 +193,7 @@ export async function runPlaywright(
  *
  * @example
  * ```ts
- * import { runMidsceneYaml } from '@lhvison/ai-e2e-base'
+ * import { runMidsceneYaml } from '@lhvision/ai-e2e-base'
  *
  * const res = await runMidsceneYaml('e2e/yaml/test.yaml', {
  *   onLine: (line) => console.log(line)

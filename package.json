@@ -1,5 +1,5 @@
 {
-  "name": "@lhvison/ai-e2e-base",
+  "name": "@lhvision/ai-e2e-base",
   "version": "0.1.0",
   "description": "Zero-browser-install AI E2E base library powered by Midscene & Playwright CDP",
   "author": "lhvision",

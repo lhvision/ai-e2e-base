@@ -104,7 +104,7 @@ export interface CreateAiFixtureOptions {
  * @example
  * ```ts
  * // e2e/fixture.ts
- * import { createAiFixture, expect } from '@lhvison/ai-e2e-base'
+ * import { createAiFixture, expect } from '@lhvision/ai-e2e-base'
  *
  * export const test = createAiFixture({ cacheId: 'my-suite' })
  * export { expect }

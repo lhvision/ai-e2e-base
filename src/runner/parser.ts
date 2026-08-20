@@ -31,7 +31,7 @@ export interface ParsedTestCase {
  *
  * @example
  * ```ts
- * import { parseSpecFile } from '@lhvison/ai-e2e-base'
+ * import { parseSpecFile } from '@lhvision/ai-e2e-base'
  *
  * const cases = parseSpecFile('e2e/home.spec.ts')
  * console.log(cases.map(c => `${c.title} (line ${c.line})`))

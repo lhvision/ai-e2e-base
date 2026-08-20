@@ -25,7 +25,7 @@ export interface InitCliOptions {
   devCommand?: string
   /** 是否跳过所有交互提示，使用默认配置 */
   yes?: boolean
-  /** 基础库包名 (默认 '@lhvison/ai-e2e-base') */
+  /** 基础库包名 (默认 '@lhvision/ai-e2e-base') */
   packageName?: string
 }
 
@@ -47,7 +47,7 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
   let targetDir = options.dir || 'e2e'
   let baseUrl = options.url || 'http://localhost:5173'
   let devCommand = options.devCommand || 'npm run dev'
-  const packageName = options.packageName || '@lhvison/ai-e2e-base'
+  const packageName = options.packageName || '@lhvision/ai-e2e-base'
 
   if (isInteractive) {
     const rl = readline.createInterface({

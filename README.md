@@ -1,4 +1,4 @@
-# @lhvison/ai-e2e-base
+# @lhvision/ai-e2e-base
 
 > 🚀 **零内核下载、长效登录态持久化、极简回归测试看板、深度融合 Midscene 视觉大模型的下一代 AI E2E 自动化测试基础库与 SDK。**
 
@@ -18,7 +18,7 @@
 3. **老旧项目 Node 版本受限**：主业务工程可能锁定在老旧 Node 版本（< 24），无法直接安装现代 ESM / Playwright / Midscene 工具链。
 4. **AI Coding Agent 缺乏自愈闭环**：代码助手在生成代码后无法直观知道界面是否符合预期、断言是否通过。
 
-**`@lhvison/ai-e2e-base` 针对上述痛点提供一站式解决方案：**
+**`@lhvision/ai-e2e-base` 针对上述痛点提供一站式解决方案：**
 
 - **⚡ 零内核下载**：基于 Chrome 远程调试协议（CDP），直连本地已安装的 Chrome / Edge，彻底免除内核下载；
 - **🔐 长效登录态持久化**：支持指定独立隔离的 Profile 目录（如 `agent-profile-1`），人工在浏览器中扫码/登录一次，后续测试全自动复用；
@@ -49,7 +49,7 @@
 在项目根目录直接运行初始化向导：
 
 ```bash
-npx @lhvison/ai-e2e-base init
+npx @lhvision/ai-e2e-base init
 ```
 
 向导将根据当前 Node 版本自动推荐并支持两种集成方式：
@@ -184,7 +184,7 @@ import {
   expect,
   type PlayWrightAiFixtureType,
   type ExtendedAiFixtureType,
-} from '@lhvison/ai-e2e-base'
+} from '@lhvision/ai-e2e-base'
 
 export const test = createAiFixture({
   cacheId: 'my-suite-cache', // 启用 AI 定位规划缓存，大幅提升重复运行速度
@@ -227,7 +227,7 @@ import {
   startPlatformServer,
   ensureChromeRunning,
   checkEnvironment,
-} from '@lhvison/ai-e2e-base'
+} from '@lhvision/ai-e2e-base'
 
 // 1. 静态提取 spec 中的用例清单与行号
 const cases = parseSpecFile('e2e/home.spec.ts')

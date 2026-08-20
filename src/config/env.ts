@@ -126,7 +126,7 @@ export interface EnvironmentDiagnostic {
  *
  * @example
  * ```ts
- * import { checkEnvironment } from '@lhvison/ai-e2e-base'
+ * import { checkEnvironment } from '@lhvision/ai-e2e-base'
  * const diag = await checkEnvironment()
  * console.log('All Ready:', diag.allReady)
  * ```

@@ -12,7 +12,7 @@ async function main() {
 
   if (!command || args.includes('-h') || args.includes('--help') || command === 'help') {
     console.log(`
-AI E2E 自动化测试命令行工具 (@lhvison/ai-e2e-base)
+AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
 
 用法:
   ai-e2e init [--isolated | --in-tree] [--dir e2e] [-y]   一键初始化测试环境并增量配置 AGENTS.md

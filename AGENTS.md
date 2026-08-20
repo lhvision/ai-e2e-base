@@ -1,4 +1,4 @@
-# AI Agent 开发指南 (@lhvison/ai-e2e-base)
+# AI Agent 开发指南 (@lhvision/ai-e2e-base)
 
 > 本指南专为在此仓库中进行功能迭代、重构或 Bug 修复的 AI Coding Agent 编写。
 

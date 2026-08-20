@@ -21,7 +21,7 @@ export interface ChromeLaunchCommandOptions {
  *
  * @example
  * ```ts
- * import { getDefaultChromePath } from '@lhvison/ai-e2e-base'
+ * import { getDefaultChromePath } from '@lhvision/ai-e2e-base'
  * const chromePath = getDefaultChromePath()
  * console.log('Found Chrome at:', chromePath)
  * ```

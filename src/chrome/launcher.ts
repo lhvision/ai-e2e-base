@@ -103,7 +103,7 @@ export async function getCdpVersionInfo(
  *
  * @example
  * ```ts
- * import { ensureChromeRunning } from '@lhvison/ai-e2e-base'
+ * import { ensureChromeRunning } from '@lhvision/ai-e2e-base'
  *
  * const res = await ensureChromeRunning({ port: 9222, profileName: 'agent-profile-1' })
  * console.log('CDP Ready at:', res.cdpUrl, 'Reused:', res.reused)

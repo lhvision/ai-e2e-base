@@ -50,7 +50,7 @@ test('功能验证与路由直达', async ({ gotoRoute, aiAssert, aiTap, aiInput
 /**
  * 生成 fixture.ts 增强模板
  */
-export function getFixtureTemplate(packageName = '@lhvison/ai-e2e-base'): string {
+export function getFixtureTemplate(packageName = '@lhvision/ai-e2e-base'): string {
   return `import { createAiFixture, expect, type PlayWrightAiFixtureType, type ExtendedAiFixtureType } from '${packageName}'
 
 // 创建支持 CDP 零内核直连、长效登录态持久化、深层路由直达与 Midscene AI 视觉能力的测试 Fixture
@@ -138,7 +138,7 @@ test('首页能够正常加载并呈现主要内容', async ({ gotoRoute, aiAsse
 /**
  * 生成隔离工作区专属 package.json 模板
  */
-export function getIsolatedPackageJsonTemplate(packageName = '@lhvison/ai-e2e-base'): string {
+export function getIsolatedPackageJsonTemplate(packageName = '@lhvision/ai-e2e-base'): string {
   return `{
   "name": "project-ai-e2e",
   "version": "0.1.0",
