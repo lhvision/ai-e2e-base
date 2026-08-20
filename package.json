@@ -4,6 +4,10 @@
   "description": "Zero-browser-install AI E2E base library powered by Midscene & Playwright CDP",
   "author": "lhvision",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lhvision/ai-e2e-base.git"
+  },
   "keywords": [
     "playwright",
     "midscene",
