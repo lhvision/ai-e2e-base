@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs'
 import { checkEnvironment, getAiE2eConfig } from '../config/index.js'
 import { ensureChromeRunning, getManualChromeCommands } from '../chrome/index.js'
 import { runPlaywright, runMidsceneYaml } from '../runner/index.js'
@@ -11,7 +12,13 @@ async function main() {
   const command = args[0]
 
   if (args.includes('-v') || args.includes('--version') || command === 'version' || command === '-v') {
-    console.log('@lhvision/ai-e2e-base v0.1.0')
+    let version = '0.1.0'
+    try {
+      const pkgUrl = new URL('../../package.json', import.meta.url)
+      const raw = fs.readFileSync(pkgUrl, 'utf-8')
+      version = JSON.parse(raw).version || version
+    } catch {}
+    console.log(`@lhvision/ai-e2e-base v${version}`)
     return
   }
 

@@ -114,7 +114,7 @@ npx ai-e2e doctor
 
   • Node.js:          v24.19.0
   • 浏览器模式 (Mode): auto (可选: auto | cdp | persistent | launch)
-  • 登录态 Profile:   agent-profile-1 (/home/miku/.chrome-profiles/agent-profile-1)
+  • 登录态 Profile:   agent-profile-1 (~/.chrome-profiles/agent-profile-1)
   • Chrome 可执行文件: google-chrome ✅
   • CDP 调试端口:     9222 ✅ (已就绪/已连接)
   • AI 视觉模型 Key:  ✅ (已配置)
@@ -146,8 +146,8 @@ npx ai-e2e platform
 本项目原生支持 AI Coding Agent（如 Cursor / Claude Code / Antigravity）：
 
 1. **自动感知**：项目根目录生成的 `AGENTS.md` 会被 AI 自动识别为测试执行准则；
-2. **闭环约定**：Agent 在完成业务开发或重构后，会自动编写或补充 `e2e/*.spec.ts`；
-3. **单条回归**：Agent 主动执行 `pnpm exec playwright test e2e/<file>.spec.ts -g "用例名"`；
+2. **闭环约定**：Agent 在完成业务开发或重构后，会自动在 `e2e/tests/` 编写或补充用例；
+3. **单条回归**：Agent 主动执行 `pnpm exec playwright test e2e/tests/<file>.spec.ts -g "用例名"`；
 4. **视觉自愈**：若测试失败，Agent 主动读取控制台报错与 `midscene_run/report/*.html` 报告进行自我修复，直到 100% Passed。
 
 ---
@@ -180,36 +180,32 @@ CHROME_PROFILE=agent-profile-1
 
 ## 📝 编写测试用例
 
-在项目 `e2e/fixture.ts` 中导出增强版 `test` 与 `expect`：
+在项目 `e2e/tests/fixture.ts` 中导出增强版 `test` 并透传全部类型：
 
 ```ts
-// e2e/fixture.ts
-import {
-  createAiFixture,
-  expect,
-  type PlayWrightAiFixtureType,
-  type ExtendedAiFixtureType,
-} from '@lhvision/ai-e2e-base'
+// e2e/tests/fixture.ts
+import { createAiFixture } from '@lhvision/ai-e2e-base'
 
+// 创建支持 CDP 零内核直连、长效登录态持久化、深层路由直达与 Midscene AI 视觉能力的测试 Fixture
 export const test = createAiFixture({
   cacheId: 'my-suite-cache', // 启用 AI 定位规划缓存，大幅提升重复运行速度
 })
 
-export { expect }
-export type { PlayWrightAiFixtureType, ExtendedAiFixtureType }
+// 重新导出所有 Playwright 原生能力 (Page, Locator, expect, devices, defineConfig 等) 与 Midscene 方法/类型
+export * from '@lhvision/ai-e2e-base'
 ```
 
-在测试文件中直接编写用例（支持深层路由秒级直达）：
+在测试文件中直接编写用例（统一从 `./fixture` 导入，享用 100% 完整 IDE Hover Tooltip 与自动补全）：
 
 ```ts
-// e2e/home.spec.ts
+// e2e/tests/home.spec.ts
 import { test, expect } from './fixture'
 
 test('深层路由直达与智能视觉断言', async ({ gotoRoute, page, aiAssert, aiTap }) => {
   // 1. ⚡ 路由直达：直接打开被测深层页面（自动携带持久化登录态并等待网络空闲）
   await gotoRoute('/comic/jm/438696')
 
-  // 2. 传统 Playwright 定位（可选）
+  // 2. 传统 Playwright 定位（可选，原生支持）
   const card = page.locator('.comic-card, .detail-header').first()
   await expect(card).toBeVisible({ timeout: 10_000 })
 
@@ -235,7 +231,7 @@ import {
 } from '@lhvision/ai-e2e-base'
 
 // 1. 静态提取 spec 中的用例清单与行号
-const cases = parseSpecFile('e2e/home.spec.ts')
+const cases = parseSpecFile('e2e/tests/home.spec.ts')
 
 // 2. 编程式触发测试，获取实时输出流与结构化结果
 const runResult = await runPlaywright({
@@ -255,8 +251,17 @@ const { url } = await startPlatformServer({ port: 3000, testDir: 'e2e' })
 ## 🖥️ CLI 命令速查
 
 ```bash
+# 查看帮助信息
+npx ai-e2e --help
+
+# 查看当前 CLI 版本号
+npx ai-e2e -v
+
 # 查看环境诊断信息
 npx ai-e2e doctor
+
+# 一键初始化测试环境（支持独立隔离或根目录增量集成）
+npx ai-e2e init [--isolated | --in-tree] [--skip-browser-download] [-y]
 
 # 启动 Web 回归测试看板
 npx ai-e2e platform [--port 3000] [--dir e2e]
@@ -265,16 +270,13 @@ npx ai-e2e platform [--port 3000] [--dir e2e]
 npx ai-e2e chrome --show
 
 # 启动后台 Chrome 调试实例
-npx ai-e2e chrome
+npx ai-e2e chrome [--headless]
 
 # 运行测试并支持文件/标题过滤
 npx ai-e2e run [file] [-g "用例名"]
 
 # 执行独立 Midscene YAML 脚本
 npx ai-e2e yaml <file.yaml>
-
-# 查看帮助信息
-npx ai-e2e -h
 ```
 
 ---
