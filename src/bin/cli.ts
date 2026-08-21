@@ -10,18 +10,60 @@ async function main() {
   const args = process.argv.slice(2)
   const command = args[0]
 
-  if (!command || args.includes('-h') || args.includes('--help') || command === 'help') {
+  if (args.includes('-v') || args.includes('--version') || command === 'version' || command === '-v') {
+    console.log('@lhvision/ai-e2e-base v0.1.0')
+    return
+  }
+
+  if (
+    !command ||
+    args.includes('-h') ||
+    args.includes('--help') ||
+    args.includes('--hlep') ||
+    command === 'help'
+  ) {
     console.log(`
 AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
 
 用法:
-  ai-e2e init [--isolated | --in-tree] [--dir e2e] [-y]   一键初始化测试环境并增量配置 AGENTS.md
-  ai-e2e platform [--port 3000] [--dir e2e]               启动极简零依赖 Web 回归测试看板
-  ai-e2e doctor                                           自检环境（Node、Chrome 路径、CDP 端口、大模型 Key）
-  ai-e2e chrome [--show] [--headless]                     启动或获取独立 Chrome 调试端口启动命令
-  ai-e2e run [file] [-g "用例名"]                         运行 Playwright + Midscene 测试用例 (支持 .spec.ts / .yaml)
-  ai-e2e yaml <file.yaml>                                 执行 Midscene 独立 YAML 自动化脚本
-  ai-e2e -h, --help                                       查看帮助信息
+  ai-e2e <command> [options]
+
+核心命令:
+  init      一键初始化测试环境并增量配置 AGENTS.md 与 .gitignore
+            选项:
+              --isolated                  强制使用独立隔离子目录模式 (Node < 24 推荐)
+              --in-tree                   强制使用根目录集成模式 (Node >= 24 推荐)
+              --dir <path>                指定测试目录名称 (默认: e2e)
+              --url <url>                 被测本地服务地址 (默认: http://localhost:5173)
+              --dev <cmd>                 启动开发服务命令 (默认: npm run dev)
+              --skip-browser-download     跳过 Playwright 浏览器内核下载，复用本地 Chrome
+              -y, --yes                   跳过所有交互提示，使用默认配置
+
+  platform  启动极简零依赖 Web 回归测试看板 (支持用例分组、一键触发与视觉报告回放)
+            别名: ui, dashboard
+            选项:
+              --port <port>               指定看板监听端口 (默认: 3000)
+              --dir <path>                指定测试用例扫描目录 (默认: e2e)
+
+  doctor    环境自检（Node 版本、Chrome 安装路径、CDP 9222 连通性、大模型 Key 与配置）
+
+  chrome    启动或获取独立 Chrome 调试端口实例 (支持扫码一次并永久持久化登录态)
+            别名: launch-chrome
+            选项:
+              --show                      仅打印当前操作系统适配的 Chrome 启动命令，不拉起进程
+              --headless                  以无头模式在后台拉起 Chrome 实例
+
+  run       运行 Playwright + Midscene 测试用例 (支持 .spec.ts / .yaml 文件)
+            选项:
+              -g <regex>                  按用例标题或分组正则过滤执行
+              [files...]                  指定待执行的一个或多个测试文件
+
+  yaml      执行独立 Midscene YAML 自动化脚本
+            用法: ai-e2e yaml <file.yaml>
+
+通用选项:
+  -v, --version                           查看当前 CLI 版本号
+  -h, --help                              查看帮助信息
 `)
     return
   }
@@ -30,6 +72,10 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
     const isIsolated = args.includes('--isolated')
     const isInTree = args.includes('--in-tree')
     const isYes = args.includes('-y') || args.includes('--yes')
+    const skipBrowserDownload =
+      args.includes('--skip-browser-download') ||
+      args.includes('--no-browser-download') ||
+      args.includes('--skip-chrome')
 
     const dirIdx = args.indexOf('--dir')
     const dir = dirIdx !== -1 ? args[dirIdx + 1] : undefined
@@ -47,6 +93,7 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
       url,
       devCommand,
       yes: isYes,
+      skipBrowserDownload: skipBrowserDownload ? true : undefined,
     })
     return
   }
@@ -88,7 +135,9 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
     console.log(
       `  • AI 视觉模型 Key:  ${diag.hasModelApiKey ? '✅ (已配置)' : '⚠️ (未配置 MIDSCENE_MODEL_API_KEY)'}`,
     )
-    console.log(`  • AI 视觉模型名称:  ${diag.modelName}`)
+    console.log(
+      `  • AI 视觉模型名称:  ${diag.modelName ? `✅ (${diag.modelName})` : '⚠️ (未配置，将使用 Midscene 默认模型)'}`,
+    )
 
     if (!diag.cdpAlive && (diag.browserMode === 'auto' || diag.browserMode === 'cdp')) {
       console.log(

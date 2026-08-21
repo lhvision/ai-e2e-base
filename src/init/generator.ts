@@ -7,6 +7,8 @@ import {
   getPlaywrightConfigTemplate,
   getEnvExampleTemplate,
   getExampleSpecTemplate,
+  getYamlExampleTemplate,
+  getNpmrcTemplate,
   getIsolatedPackageJsonTemplate,
   getCasesJsonTemplate,
   type TemplateOptions,
@@ -27,6 +29,8 @@ export interface InitCliOptions {
   yes?: boolean
   /** 基础库包名 (默认 '@lhvision/ai-e2e-base') */
   packageName?: string
+  /** 是否跳过 Playwright 浏览器内核下载 */
+  skipBrowserDownload?: boolean
 }
 
 function ask(rl: readline.Interface, query: string): Promise<string> {
@@ -47,6 +51,7 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
   let targetDir = options.dir || 'e2e'
   let baseUrl = options.url || 'http://localhost:5173'
   let devCommand = options.devCommand || 'npm run dev'
+  let skipBrowserDownload = options.skipBrowserDownload ?? true
   const packageName = options.packageName || '@lhvision/ai-e2e-base'
 
   if (isInteractive) {
@@ -94,6 +99,15 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
       devCommand = devAnswer.trim()
     }
 
+    // 5. 询问是否跳过浏览器内核下载
+    const skipBrowserAnswer = await ask(
+      rl,
+      `\n跳过 Playwright 浏览器内核二进制下载 (推荐复用本地 Chrome，零下载) [Y/n] (默认 Y): `,
+    )
+    if (skipBrowserAnswer.trim()) {
+      skipBrowserDownload = skipBrowserAnswer.trim().toLowerCase() !== 'n'
+    }
+
     rl.close()
   } else {
     // 非交互式
@@ -112,25 +126,34 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
     devCommand,
     isIsolated,
     packageName,
+    skipBrowserDownload,
   }
 
   const targetFullPath = path.resolve(process.cwd(), targetDir)
-  fs.mkdirSync(targetFullPath, { recursive: true })
+  const testsFullPath = path.join(targetFullPath, 'tests')
+  const yamlFullPath = path.join(targetFullPath, 'yaml')
 
-  // 1. 写入 fixture.ts
+  fs.mkdirSync(targetFullPath, { recursive: true })
+  fs.mkdirSync(testsFullPath, { recursive: true })
+  fs.mkdirSync(yamlFullPath, { recursive: true })
+
+  // 1. 写入 tests/fixture.ts
   fs.writeFileSync(
-    path.join(targetFullPath, 'fixture.ts'),
+    path.join(testsFullPath, 'fixture.ts'),
     getFixtureTemplate(packageName),
     'utf-8',
   )
 
-  // 2. 写入 example.spec.ts
-  fs.writeFileSync(path.join(targetFullPath, 'example.spec.ts'), getExampleSpecTemplate(), 'utf-8')
+  // 2. 写入 tests/example.spec.ts
+  fs.writeFileSync(path.join(testsFullPath, 'example.spec.ts'), getExampleSpecTemplate(), 'utf-8')
 
-  // 3. 写入 cases.json (用例分组与优先级元数据)
+  // 3. 写入 yaml/example.yaml
+  fs.writeFileSync(path.join(yamlFullPath, 'example.yaml'), getYamlExampleTemplate(), 'utf-8')
+
+  // 4. 写入 cases.json (用例分组与优先级元数据)
   fs.writeFileSync(path.join(targetFullPath, 'cases.json'), getCasesJsonTemplate(), 'utf-8')
 
-  // 4. 写入/增量更新 AGENTS.md (专供 AI Agent 阅读的自愈闭环规则)
+  // 5. 写入/增量更新 AGENTS.md (专供 AI Agent 阅读的自愈闭环规则)
   fs.writeFileSync(
     path.join(targetFullPath, 'AGENTS.md'),
     getAgentsMdTemplate(templateOptions),
@@ -146,17 +169,11 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
     fs.writeFileSync(rootAgentsMd, getAgentsMdTemplate(templateOptions), 'utf-8')
   }
 
-  // 5. 写入 .env.example
+  // 6. 写入 .env.example
   fs.writeFileSync(path.join(targetFullPath, '.env.example'), getEnvExampleTemplate(), 'utf-8')
 
-  // 如果根目录没有 .env，复制一份作为初始配置
-  const rootEnv = path.resolve(process.cwd(), '.env')
-  if (!fs.existsSync(rootEnv)) {
-    fs.writeFileSync(rootEnv, getEnvExampleTemplate(), 'utf-8')
-  }
-
   if (isIsolated) {
-    // 独立子目录模式：生成专属 package.json、playwright.config.ts 与 .nvmrc (Node 24)
+    // 独立子目录模式：所有测试依赖、playwright.config.ts、.env 与 .nvmrc 均放在子目录下，绝不污染根目录
     fs.writeFileSync(
       path.join(targetFullPath, 'package.json'),
       getIsolatedPackageJsonTemplate(packageName),
@@ -168,11 +185,23 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
       'utf-8',
     )
     fs.writeFileSync(path.join(targetFullPath, '.nvmrc'), '24\n', 'utf-8')
+    const isolatedEnv = path.join(targetFullPath, '.env')
+    if (!fs.existsSync(isolatedEnv)) {
+      fs.writeFileSync(isolatedEnv, getEnvExampleTemplate(), 'utf-8')
+    }
+    if (skipBrowserDownload) {
+      fs.writeFileSync(path.join(targetFullPath, '.npmrc'), getNpmrcTemplate(), 'utf-8')
+    }
   } else {
-    // 根目录模式：在根目录创建 playwright.config.ts
+    // 根目录模式：在根目录创建 playwright.config.ts 与 .env
     const rootPlaywrightConfig = path.resolve(process.cwd(), 'playwright.config.ts')
     if (!fs.existsSync(rootPlaywrightConfig)) {
       fs.writeFileSync(rootPlaywrightConfig, getPlaywrightConfigTemplate(templateOptions), 'utf-8')
+    }
+
+    const rootEnv = path.resolve(process.cwd(), '.env')
+    if (!fs.existsSync(rootEnv)) {
+      fs.writeFileSync(rootEnv, getEnvExampleTemplate(), 'utf-8')
     }
 
     // 尝试增量更新根目录 package.json scripts
@@ -191,30 +220,111 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
     }
   }
 
+  // 7. 增量更新 .gitignore (自动添加 midscene_run, test-results, playwright-report, platform/data/, runs.json 等)
+  const defaultIgnoreEntries = [
+    'midscene_run',
+    'test-results',
+    'playwright-report',
+    'platform/data/',
+    'runs.json',
+    '.env',
+  ]
+  const rootGitignore = path.resolve(process.cwd(), '.gitignore')
+  ensureGitignoreEntries(rootGitignore, defaultIgnoreEntries)
+  if (isIsolated) {
+    ensureGitignoreEntries(path.join(targetFullPath, '.gitignore'), defaultIgnoreEntries)
+  }
+
   console.log('\n✨ [ai-e2e init] 初始化完成！生成文件清单：')
   console.log(`  📄 ${targetDir}/AGENTS.md           (AI Agent 自我修复测试指引)`)
-  console.log(`  📄 ${targetDir}/fixture.ts         (增强版 Playwright × Midscene Fixture)`)
-  console.log(`  📄 ${targetDir}/example.spec.ts    (基础 AI 视觉断言示例用例)`)
   console.log(`  📄 ${targetDir}/cases.json         (用例分组与优先级元数据)`)
+  console.log(`  📄 ${targetDir}/tests/fixture.ts   (增强版 Playwright × Midscene Fixture)`)
+  console.log(`  📄 ${targetDir}/tests/example.spec.ts (基础 AI 视觉断言示例用例)`)
+  console.log(`  📄 ${targetDir}/yaml/example.yaml  (Midscene YAML 自动化脚本示例)`)
   console.log(`  📄 ${targetDir}/.env.example       (模型 Key 与运行模式配置模板)`)
   if (isIsolated) {
+    console.log(`  📄 ${targetDir}/.env               (当前工作区环境变量)`)
+    if (skipBrowserDownload) {
+      console.log(`  📄 ${targetDir}/.npmrc             (配置跳过 Playwright 内核下载)`)
+    }
     console.log(`  📄 ${targetDir}/package.json       (独立 Node 24+ 依赖环境)`)
-    console.log(`  📄 ${targetDir}/playwright.config.ts`)
+    console.log(`  📄 ${targetDir}/playwright.config.ts (testDir: './tests')`)
     console.log(`  📄 ${targetDir}/.nvmrc             (固定 Node 24)`)
+  } else {
+    console.log(`  📄 .env                            (根目录环境变量)`)
   }
+  console.log(`  📄 .gitignore                      (已增量追加测试产物忽略规则)`)
 
   console.log('\n🚀 下一步：')
   if (isIsolated) {
     console.log(`  1. 进入测试目录安装依赖:  cd ${targetDir} && pnpm install (或 npm install)`)
-    console.log(`  2. 填写大模型 Key:       在 .env 中填入 MIDSCENE_MODEL_API_KEY`)
-    console.log(`  3. 运行环境自检:         npx ai-e2e doctor`)
-    console.log(`  4. 启动可视化看板:       npx ai-e2e platform`)
+    console.log(`  2. 填写大模型 Key:       在 ${targetDir}/.env 中填入 MIDSCENE_MODEL_API_KEY`)
+    console.log(`  3. 运行环境自检:         cd ${targetDir} && npx ai-e2e doctor`)
+    console.log(`  4. 启动可视化看板:       cd ${targetDir} && npx ai-e2e platform`)
     console.log(`  5. 让 AI 开始写测并回归:   将 ${targetDir}/AGENTS.md 告知 AI Agent 即可！\n`)
   } else {
     console.log(`  1. 填写大模型 Key:       在 .env 中填入 MIDSCENE_MODEL_API_KEY`)
     console.log(`  2. 运行环境自检:         pnpm ai-e2e:doctor`)
     console.log(`  3. 启动可视化看板:       pnpm ai-e2e:platform`)
-    console.log(`  4. 运行首条用例:         pnpm exec playwright test ${targetDir}/example.spec.ts`)
+    console.log(`  4. 运行首条用例:         pnpm exec playwright test ${targetDir}/tests/example.spec.ts`)
     console.log(`  5. 让 AI 开始写测并回归:   将 ${targetDir}/AGENTS.md 告知 AI Agent 即可！\n`)
+  }
+}
+
+/**
+ * 增量向 .gitignore 文件中追加忽略规则（自动去重并保持格式）
+ *
+ * @param gitignorePath - 目标 .gitignore 路径
+ * @param entries - 需要确保存在的忽略规则列表
+ * @returns 是否发生了增量写入
+ *
+ * @example
+ * ```ts
+ * ensureGitignoreEntries('.gitignore', ['midscene_run', 'test-results'])
+ * ```
+ */
+export function ensureGitignoreEntries(
+  gitignorePath: string,
+  entries: string[] = [
+    'midscene_run',
+    'test-results',
+    'playwright-report',
+    'platform/data/',
+    'runs.json',
+    '.env',
+  ],
+): boolean {
+  let existing = ''
+  if (fs.existsSync(gitignorePath)) {
+    try {
+      existing = fs.readFileSync(gitignorePath, 'utf-8')
+    } catch {
+      existing = ''
+    }
+  }
+
+  const existingLines = new Set(
+    existing
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean),
+  )
+
+  const missingEntries = entries.filter((entry) => !existingLines.has(entry.trim()))
+
+  if (missingEntries.length === 0) {
+    return false
+  }
+
+  const needsLeadingNewline = existing.length > 0 && !existing.endsWith('\n')
+  const header =
+    existing.length > 0 ? (needsLeadingNewline ? '\n\n' : '\n') + '# AI E2E\n' : '# AI E2E\n'
+  const appendBlock = header + missingEntries.join('\n') + '\n'
+
+  try {
+    fs.appendFileSync(gitignorePath, appendBlock, 'utf-8')
+    return true
+  } catch {
+    return false
   }
 }

@@ -5,6 +5,7 @@ export interface TemplateOptions {
   devCommand: string
   isIsolated: boolean
   packageName?: string
+  skipBrowserDownload?: boolean
 }
 
 /**
@@ -12,15 +13,15 @@ export interface TemplateOptions {
  */
 export function getAgentsMdTemplate(options: TemplateOptions): string {
   const runCmd = options.isIsolated
-    ? 'cd ' + options.targetDir + ' && pnpm exec playwright test'
-    : 'pnpm exec playwright test'
+    ? `cd ${options.targetDir} && pnpm exec playwright test tests/example.spec.ts`
+    : `pnpm exec playwright test ${options.targetDir}/tests/example.spec.ts`
 
   return `# AI E2E 自动化测试与自我修复约定
 
 > 目标：指导 AI Agent 在交付带 UI 的新功能或修复 Bug 后，必须为核心交互补齐视觉回归用例，并通过【单条跑测 -> 查阅 Midscene 报告 -> 自我修复】实现闭环交付。
 
 ## 🤖 核心闭环与执行约定
-1. **交付带 UI 新功能必须补测**：新增或修改核心交互时，必须在 \`${options.targetDir}/\` 补齐对应 Midscene 用例，保证测试 100% 全部通过；
+1. **交付带 UI 新功能必须补测**：新增或修改核心交互时，必须在 \`${options.targetDir}/tests/\` 补齐对应 Midscene 用例，保证测试 100% 全部通过；
 2. **严禁全量跑测（Focused Execution Only）**：仅执行本次改动的单条用例（使用 \`-g "用例名"\` 精确匹配）；
 3. **路由秒级直达（Deep-Link First）**：开发深层路由（如 \`/detail/123\`）时，使用 \`gotoRoute('/detail/123')\` 直接直达，严禁从首页漫游点击；
 4. **视觉断言优先**：优先使用 \`aiAssert\` 自然语言断言关键视觉呈现与业务状态，避免维护脆弱的 CSS 选择器；
@@ -39,8 +40,8 @@ test('功能验证与路由直达', async ({ gotoRoute, aiAssert, aiTap, aiInput
 \`\`\`
 
 ## ⚡ 常用命令速查
-- **跑单条用例**：\`${runCmd} ${options.isIsolated ? 'example.spec.ts' : options.targetDir + '/example.spec.ts'} -g "用例名"\`
-- **跑 Midscene YAML 脚本**：\`${options.isIsolated ? 'cd ' + options.targetDir + ' && pnpm yaml yaml/test.yaml' : 'pnpm ai-e2e:yaml ' + options.targetDir + '/yaml/test.yaml'}\`
+- **跑单条用例**：\`${runCmd} -g "用例名"\`
+- **跑 Midscene YAML 脚本**：\`${options.isIsolated ? 'cd ' + options.targetDir + ' && pnpm yaml yaml/example.yaml' : 'pnpm ai-e2e:yaml ' + options.targetDir + '/yaml/example.yaml'}\`
 - **启动 Chrome 调试实例（扫码登录一次）**：\`${options.isIsolated ? 'cd ' + options.targetDir + ' && pnpm chrome' : 'pnpm ai-e2e:chrome'}\`
 - **启动 Web 回归看板**：\`${options.isIsolated ? 'cd ' + options.targetDir + ' && pnpm platform' : 'pnpm ai-e2e:platform'}\`
 - **环境健康自检**：\`${options.isIsolated ? 'cd ' + options.targetDir + ' && pnpm doctor' : 'pnpm ai-e2e:doctor'}\`
@@ -51,15 +52,15 @@ test('功能验证与路由直达', async ({ gotoRoute, aiAssert, aiTap, aiInput
  * 生成 fixture.ts 增强模板
  */
 export function getFixtureTemplate(packageName = '@lhvision/ai-e2e-base'): string {
-  return `import { createAiFixture, expect, type PlayWrightAiFixtureType, type ExtendedAiFixtureType } from '${packageName}'
+  return `import { createAiFixture } from '${packageName}'
 
 // 创建支持 CDP 零内核直连、长效登录态持久化、深层路由直达与 Midscene AI 视觉能力的测试 Fixture
 export const test = createAiFixture({
   cacheId: 'default-suite',
 })
 
-export { expect }
-export type { PlayWrightAiFixtureType, ExtendedAiFixtureType }
+// 重新导出所有 Playwright 原生能力 (Page, Locator, expect, devices, defineConfig 等) 与 Midscene 方法/类型
+export * from '${packageName}'
 `
 }
 
@@ -67,13 +68,15 @@ export type { PlayWrightAiFixtureType, ExtendedAiFixtureType }
  * 生成 playwright.config.ts 模板
  */
 export function getPlaywrightConfigTemplate(options: TemplateOptions): string {
+  const testDir = options.isIsolated ? './tests' : `./${options.targetDir}/tests`
+
   return `import { defineConfig, devices } from '@playwright/test'
 import dotenv from 'dotenv'
 
 dotenv.config()
 
 export default defineConfig({
-  testDir: './${options.targetDir}',
+  testDir: '${testDir}',
   timeout: 90 * 1000,
   fullyParallel: false,
   workers: 1,
@@ -99,11 +102,11 @@ export default defineConfig({
  * 生成 .env.example 模板
  */
 export function getEnvExampleTemplate(): string {
-  return `# Midscene 视觉大模型配置 (支持 Qwen-VL / Gemini / OpenAI / DashScope 等)
-MIDSCENE_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+  return `# Midscene 视觉大模型配置 (可选，默认无需配置 Base URL)
+MIDSCENE_MODEL_BASE_URL=
 MIDSCENE_MODEL_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
-MIDSCENE_MODEL_NAME=qwen-vl-max
-MIDSCENE_MODEL_FAMILY=qwen
+MIDSCENE_MODEL_NAME=
+MIDSCENE_MODEL_FAMILY=
 
 # 浏览器运行模式: auto | cdp | persistent | launch (默认 auto)
 BROWSER_MODE=auto
@@ -113,6 +116,9 @@ CHROME_PROFILE=agent-profile-1
 
 # Chrome 调试端口 (默认 9222)
 CDP_PORT=9222
+
+# 跳过 Playwright 自动下载浏览器内核 (零内核占用，直连本地 Chrome)
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 `
 }
 
@@ -136,6 +142,31 @@ test('首页能够正常加载并呈现主要内容', async ({ gotoRoute, aiAsse
 }
 
 /**
+ * 生成 Midscene YAML 脚本模板 (example.yaml)
+ */
+export function getYamlExampleTemplate(): string {
+  return `# Midscene YAML 自动化脚本示例
+# 运行命令: ai-e2e yaml <yaml文件路径>
+target:
+  url: https://www.bing.com
+
+tasks:
+  - name: 搜索并验证
+    flow:
+      - ai: 在搜索框中输入 "Midscene.js" 并回车
+      - sleep: 2000
+      - aiAssert: 页面上展示了关于 Midscene 的搜索结果列表
+`
+}
+
+/**
+ * 生成 .npmrc 模板 (跳过 Playwright 内核下载)
+ */
+export function getNpmrcTemplate(): string {
+  return `playwright_skip_browser_download=1\n`
+}
+
+/**
  * 生成隔离工作区专属 package.json 模板
  */
 export function getIsolatedPackageJsonTemplate(packageName = '@lhvision/ai-e2e-base'): string {
@@ -153,7 +184,8 @@ export function getIsolatedPackageJsonTemplate(packageName = '@lhvision/ai-e2e-b
     "yaml": "ai-e2e yaml",
     "platform": "ai-e2e platform",
     "doctor": "ai-e2e doctor",
-    "chrome": "ai-e2e chrome"
+    "chrome": "ai-e2e chrome",
+    "install:no-browser": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm install"
   },
   "dependencies": {
     "${packageName}": "^0.1.0",

@@ -77,9 +77,8 @@ export function getAiE2eConfig(): AiE2eConfig {
     process.env.MIDSCENE_MODEL_API_KEY ||
     process.env.OPENAI_API_KEY ||
     process.env.DASHSCOPE_API_KEY
-  const modelName =
-    process.env.MIDSCENE_MODEL_NAME || process.env.MIDSCENE_MODEL || 'gemini-2.5-flash'
-  const modelFamily = process.env.MIDSCENE_MODEL_FAMILY || 'gemini'
+  const modelName = process.env.MIDSCENE_MODEL_NAME || process.env.MIDSCENE_MODEL
+  const modelFamily = process.env.MIDSCENE_MODEL_FAMILY
 
   return {
     browser: {
@@ -148,7 +147,7 @@ export async function checkEnvironment(): Promise<EnvironmentDiagnostic> {
     cdpPort: cfg.browser.port,
     cdpAlive,
     hasModelApiKey,
-    modelName: cfg.midscene.modelName || 'gemini-2.5-flash',
+    modelName: cfg.midscene.modelName || '',
     allReady: chromeExists && (cdpAlive || cfg.browser.mode !== 'cdp') && hasModelApiKey,
   }
 }

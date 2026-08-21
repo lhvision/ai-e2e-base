@@ -55,34 +55,36 @@ npx @lhvision/ai-e2e-base init
 向导将根据当前 Node 版本自动推荐并支持两种集成方式：
 
 - **方式 A：根目录集成 (In-Tree - 适合 Node >= 24 项目)**
-  - 在当前项目根目录增量创建 `e2e/` 目录；
+  - 在当前项目根目录增量创建 `e2e/tests/`、`e2e/yaml/` 目录；
   - 自动向根目录 `package.json` **增量注入便捷 scripts**：
     ```json
     "scripts": {
       "ai-e2e:doctor": "ai-e2e doctor",
       "ai-e2e:chrome": "ai-e2e chrome",
       "ai-e2e:platform": "ai-e2e platform",
+      "ai-e2e:yaml": "ai-e2e yaml",
       "ai-e2e:test": "playwright test"
     }
     ```
-  - 自动生成 `e2e/fixture.ts`、`e2e/example.spec.ts`、`e2e/cases.json`、`playwright.config.ts` 与项目根目录的 `AGENTS.md`。
+  - 自动生成 `e2e/tests/fixture.ts`、`e2e/tests/example.spec.ts`、`e2e/yaml/example.yaml`、`e2e/cases.json`、`playwright.config.ts` 与项目根目录的 `AGENTS.md`。
 
 - **方式 B：独立隔离子目录 (Isolated Workspace - 适合 Node < 24 或老项目)**
-  - 在 `e2e/` 子目录下创建独立的 `package.json`（锁定 `engines.node: ">=24.0.0"`）、`.nvmrc (24)`、`playwright.config.ts`；
+  - 在 `e2e/` 子目录下创建独立的 `package.json`（锁定 `engines.node: ">=24.0.0"`）、`.nvmrc (24)`、`.npmrc`、`playwright.config.ts`；
+  - 测试用例与 Fixture 归整在 `e2e/tests/`，YAML 自动化在 `e2e/yaml/`；
   - 测试依赖完全隔离在 `e2e/` 内部，主业务构建环境零污染。
 
 ---
 
 ### 2. 配置环境变量 (`.env`)
 
-在项目根目录创建 `.env` 文件：
+在项目根目录创建 `.env` 文件（或使用生成的 `.env.example`）：
 
 ```env
-# 1. Midscene 视觉大模型配置（支持 Qwen-VL / Gemini / OpenAI / DashScope 等）
-MIDSCENE_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+# 1. Midscene 视觉大模型配置（可选，如需自定义 Base URL 可填入）
+MIDSCENE_MODEL_BASE_URL=
 MIDSCENE_MODEL_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
-MIDSCENE_MODEL_NAME=qwen-vl-max
-MIDSCENE_MODEL_FAMILY=qwen
+MIDSCENE_MODEL_NAME=
+MIDSCENE_MODEL_FAMILY=
 
 # 2. 浏览器与登录态配置 (可选: auto | cdp | persistent | launch，默认 auto)
 BROWSER_MODE=auto
@@ -92,6 +94,9 @@ CHROME_PROFILE=agent-profile-1
 
 # Chrome 调试端口（默认 9222）
 CDP_PORT=9222
+
+# 跳过 Playwright 自动下载浏览器内核 (零内核占用，直连本地 Chrome)
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 ```
 
 ---
@@ -113,7 +118,7 @@ npx ai-e2e doctor
   • Chrome 可执行文件: google-chrome ✅
   • CDP 调试端口:     9222 ✅ (已就绪/已连接)
   • AI 视觉模型 Key:  ✅ (已配置)
-  • AI 视觉模型名称:  gemini-2.5-flash
+  • AI 视觉模型名称:  ✅ (qwen-vl-max)
 
 🎉 环境一切就绪，可直接执行 AI E2E 测试！
 ```

@@ -216,8 +216,12 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
   return aiExtended
 }
 
-/** 默认开箱即用的 test 实例 */
-export const test = createAiFixture({ cacheId: 'default-suite' })
+// 导出 Playwright 所有原生能力、断言与类型定义 (Page, Locator, expect, devices, defineConfig 等)
+export * from '@playwright/test'
 
-export { expect } from '@playwright/test'
-export type { PlayWrightAiFixtureType } from '@midscene/web/playwright'
+// 导出 Midscene 视觉大模型核心与 Playwright Fixture 类型
+export * from '@midscene/web'
+export * from '@midscene/web/playwright'
+
+/** 默认开箱即用的 AI Fixture test 实例（内置 AI 视觉交互与深层路由直达） */
+export const test = createAiFixture({ cacheId: 'default-suite' })

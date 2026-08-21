@@ -345,6 +345,16 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
     let allCases = [];
     let isRunning = false;
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     async function loadCases() {
       try {
         const res = await fetch('/api/cases');
@@ -358,6 +368,13 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
     function renderCases(cases) {
       const container = document.getElementById('case-list-container');
       container.innerHTML = '';
+
+      if (!cases || cases.length === 0) {
+        document.getElementById('case-count').textContent = '共 0 条用例';
+        document.getElementById('group-count').textContent = '0 个分组';
+        container.innerHTML = '<div style="text-align: center; color: var(--accents-4); padding: 40px 16px; font-size: 13px;">暂未发现测试用例<br/><small style="color: var(--accents-3); margin-top: 8px; display: block;">请在 tests/ 目录下添加 *.spec.ts 文件</small></div>';
+        return;
+      }
       
       const groups = {};
       cases.forEach(c => {
@@ -376,22 +393,23 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
         
         const headerEl = document.createElement('div');
         headerEl.className = 'group-header';
-        headerEl.innerHTML = '<span>' + gName + ' (' + groups[gName].length + ')</span>' +
-          '<button class="btn btn-secondary btn-sm" onclick="runTests({ grep: \'' + gName + '\' })">跑本组</button>';
+        headerEl.innerHTML = '<span>' + escapeHtml(gName) + ' (' + groups[gName].length + ')</span>' +
+          '<button class="btn btn-secondary btn-sm" data-action="run-group" data-group="' + escapeHtml(gName) + '">跑本组</button>';
         groupEl.appendChild(headerEl);
 
         groups[gName].forEach(c => {
           const itemEl = document.createElement('div');
           itemEl.className = 'case-item';
           const pClass = c.priority ? c.priority.toLowerCase() : '';
-          const badgeHtml = c.priority ? '<span class="badge ' + pClass + '">' + c.priority + '</span>' : '';
+          const badgeHtml = c.priority ? '<span class="badge ' + pClass + '">' + escapeHtml(c.priority) + '</span>' : '';
+          const fileName = c.file ? c.file.split(/[/\\]/).pop() : 'spec';
           
           itemEl.innerHTML = 
             '<div class="case-info">' +
-              '<div class="case-title" title="' + c.title + '">' + c.title + '</div>' +
-              '<div class="case-meta">' + badgeHtml + '<span>' + c.file.split('/').pop() + ':' + c.line + '</span></div>' +
+              '<div class="case-title" title="' + escapeHtml(c.title) + '">' + escapeHtml(c.title) + '</div>' +
+              '<div class="case-meta">' + badgeHtml + '<span>' + escapeHtml(fileName) + ':' + c.line + '</span></div>' +
             '</div>' +
-            '<button class="btn btn-secondary btn-sm" onclick="runTests({ grep: \'' + c.title.replace(/'/g, "\\\\'") + '\' })">执行</button>';
+            '<button class="btn btn-secondary btn-sm" data-action="run-single" data-title="' + escapeHtml(c.title) + '">执行</button>';
           groupEl.appendChild(itemEl);
         });
 
@@ -399,11 +417,25 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
       });
     }
 
+    // 事件委托统一处理点击
+    document.getElementById('case-list-container').addEventListener('click', (e) => {
+      const target = e.target.closest('button');
+      if (!target) return;
+      const action = target.getAttribute('data-action');
+      if (action === 'run-group') {
+        const group = target.getAttribute('data-group');
+        if (group) runTests({ grep: group });
+      } else if (action === 'run-single') {
+        const title = target.getAttribute('data-title');
+        if (title) runTests({ grep: title });
+      }
+    });
+
     function filterCases() {
       const q = document.getElementById('case-search').value.trim().toLowerCase();
       if (!q) return renderCases(allCases);
       const filtered = allCases.filter(c => 
-        c.title.toLowerCase().includes(q) || 
+        (c.title && c.title.toLowerCase().includes(q)) || 
         (c.group && c.group.toLowerCase().includes(q)) ||
         (c.describe && c.describe.toLowerCase().includes(q))
       );
@@ -416,7 +448,7 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
       updateRunState(true);
 
       const logEl = document.getElementById('log-output');
-      logEl.textContent = '🚀 [Platform] 启动测试任务中...\\n';
+      logEl.textContent = '🚀 [Platform] 启动测试任务中...\n';
       
       const payload = {
         grep: opts.grep,
@@ -431,10 +463,10 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
         });
         const data = await res.json();
         
-        logEl.textContent = data.rawOutput || '测试完成';
+        logEl.textContent = data.rawOutput || (data.success ? '✅ 测试执行成功完成' : '❌ 测试执行失败');
         renderResults(data);
       } catch (err) {
-        logEl.textContent += '\\n❌ 运行失败: ' + err.message;
+        logEl.textContent += '\n❌ 运行请求异常: ' + err.message;
       } finally {
         isRunning = false;
         updateRunState(false);
@@ -469,7 +501,10 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
       tbody.innerHTML = '';
 
       if (results.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--accents-3); padding: 24px;">未匹配到用例结果</td></tr>';
+        const emptyMsg = data.success 
+          ? '测试进程已执行完成（未产生结构化用例，请查看控制台日志）' 
+          : '未产生用例结果（执行异常，请查看控制台日志）';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--accents-3); padding: 24px;">' + emptyMsg + '</td></tr>';
         return;
       }
 
@@ -481,8 +516,8 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
           : '<span style="color: var(--accents-3)">无视觉报告</span>';
 
         tr.innerHTML = 
-          '<td><strong>' + r.testTitle + '</strong><br/><small style="color: var(--accents-4)">' + r.suiteTitle + '</small></td>' +
-          '<td><span class="badge ' + statusClass + '">' + r.status + '</span></td>' +
+          '<td><strong>' + escapeHtml(r.testTitle) + '</strong><br/><small style="color: var(--accents-4)">' + escapeHtml(r.suiteTitle) + '</small></td>' +
+          '<td><span class="badge ' + statusClass + '">' + escapeHtml(r.status) + '</span></td>' +
           '<td>' + ((r.durationMs || 0) / 1000).toFixed(2) + 's</td>' +
           '<td>' + reportCell + '</td>';
         tbody.appendChild(tr);

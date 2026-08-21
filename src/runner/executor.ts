@@ -121,12 +121,23 @@ export async function runPlaywright(
     const cp: ChildProcess = spawn(cmd, args, {
       cwd: projectDir,
       env: customEnv,
+      shell: process.platform === 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
     let stdoutBuffer = ''
     let stderrBuffer = ''
     let lineRemainder = ''
+
+    cp.on('error', (err) => {
+      resolve({
+        code: 1,
+        success: false,
+        durationMs: Date.now() - startTime,
+        results: [],
+        rawOutput: `[执行错误] 启动进程失败: ${err.message}`,
+      })
+    })
 
     cp.stdout?.on('data', (data: Buffer) => {
       const text = data.toString()
@@ -220,12 +231,23 @@ export async function runMidsceneYaml(
     const cp: ChildProcess = spawn(cmd, args, {
       cwd: projectDir,
       env: customEnv,
+      shell: process.platform === 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
     let stdoutBuffer = ''
     let stderrBuffer = ''
     let lineRemainder = ''
+
+    cp.on('error', (err) => {
+      resolve({
+        code: 1,
+        success: false,
+        durationMs: Date.now() - startTime,
+        rawOutput: `[执行错误] 启动进程失败: ${err.message}`,
+        yamlFile: yamlPath,
+      })
+    })
 
     cp.stdout?.on('data', (data: Buffer) => {
       const text = data.toString()

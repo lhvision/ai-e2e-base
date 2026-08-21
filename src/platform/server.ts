@@ -64,9 +64,12 @@ export function startPlatformServer(
 
   const casesJsonPath =
     options.casesJsonPath ??
-    (fs.existsSync(path.join(testDirPath, 'cases.json'))
-      ? path.join(testDirPath, 'cases.json')
-      : path.join(rootDir, 'cases.json'))
+    [
+      path.join(testDirPath, 'cases.json'),
+      path.join(testDirPath, 'tests', 'cases.json'),
+      path.join(rootDir, 'cases.json'),
+      path.join(rootDir, testDir, 'cases.json'),
+    ].find((p) => fs.existsSync(p))
 
   const runsJsonPath = options.runsJsonPath ?? path.join(rootDir, 'runs.json')
 
@@ -85,7 +88,21 @@ export function startPlatformServer(
 
     // 2. API: 获取用例清单 (GET /api/cases)
     if (pathname === '/api/cases' && method === 'GET') {
-      const specFiles = findSpecFiles(fs.existsSync(testDirPath) ? testDirPath : rootDir)
+      let searchDir = testDirPath
+      if (!fs.existsSync(searchDir)) {
+        const altTests = path.join(rootDir, 'tests')
+        if (fs.existsSync(altTests)) {
+          searchDir = altTests
+        } else {
+          searchDir = rootDir
+        }
+      }
+
+      let specFiles = findSpecFiles(searchDir)
+      if (specFiles.length === 0 && searchDir !== rootDir) {
+        specFiles = findSpecFiles(rootDir)
+      }
+
       let allCases: ParsedTestCase[] = []
       for (const f of specFiles) {
         const cases = parseSpecFile(f)
@@ -142,8 +159,16 @@ export function startPlatformServer(
           res.end(JSON.stringify(runResult))
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err)
-          res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
-          res.end(JSON.stringify({ error: message }))
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+          res.end(
+            JSON.stringify({
+              code: 1,
+              success: false,
+              durationMs: 0,
+              results: [],
+              rawOutput: `[执行异常] ${message}`,
+            }),
+          )
         }
       })
       return
