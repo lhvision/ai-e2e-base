@@ -63,7 +63,7 @@ npx @lhvision/ai-e2e-base init
       "ai-e2e:chrome": "ai-e2e chrome",
       "ai-e2e:platform": "ai-e2e platform",
       "ai-e2e:yaml": "ai-e2e yaml",
-      "ai-e2e:test": "playwright test"
+      "ai-e2e:test": "ai-e2e run"
     }
     ```
   - 自动生成 `e2e/tests/fixture.ts`、`e2e/tests/example.spec.ts`、`e2e/yaml/example.yaml`、`e2e/cases.json`、`playwright.config.ts` 与项目根目录的 `AGENTS.md`。
@@ -147,7 +147,7 @@ npx ai-e2e platform
 
 1. **自动感知**：项目根目录生成的 `AGENTS.md` 会被 AI 自动识别为测试执行准则；
 2. **闭环约定**：Agent 在完成业务开发或重构后，会自动在 `e2e/tests/` 编写或补充用例；
-3. **单条回归**：Agent 主动执行 `pnpm exec playwright test e2e/tests/<file>.spec.ts -g "用例名"`；
+3. **单条回归**：Agent 主动执行 `pnpm ai-e2e:test e2e/tests/<file>.spec.ts -g "用例名"`；
 4. **视觉自愈**：若测试失败，Agent 主动读取控制台报错与 `midscene_run/report/*.html` 报告进行自我修复，直到 100% Passed。
 
 ---

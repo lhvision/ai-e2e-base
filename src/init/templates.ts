@@ -213,7 +213,7 @@ export function getIsolatedPackageJsonTemplate(packageName = '@lhvision/ai-e2e-b
     "install:no-browser": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm install"
   },
   "dependencies": {
-    "${packageName}": "^0.1.2",
+    "${packageName}": "^0.1.3",
     "@midscene/web": "^1.10.12",
     "@playwright/test": "^1.62.1",
     "dotenv": "^16.4.7"
