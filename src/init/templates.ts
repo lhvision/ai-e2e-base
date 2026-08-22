@@ -30,23 +30,21 @@ export function getAgentsMdTemplate(options: TemplateOptions): string {
 
   return `# E2E 测试准则与 AI 协作规范
 
-> 🎯 核心原则：**小步快跑用原生 Playwright，阶段交付/复杂视觉才用 Midscene AI**。避免每次微调代码都跑慢速 AI 断言，防止过度消耗 Token 与卡顿。
+> 🎯 核心原则：**小步快跑用原生 Playwright，阶段交付/复杂视觉才用 Midscene AI**。编码过程禁止边改边频繁跑慢速 AI 断言打断流程，在功能改完后的**最终交付阶段统一执行单条 E2E 验收**，避免过度消耗 Token 与网络卡顿。
 
-## ⚡ 验证策略（分层执行）
+## ⚡ 协作流程与验证策略
 
-1. **日常编码 / 小功能验证（推荐，零 Token 消耗）**：
-   - 优先使用原生 Playwright API（\`expect(locator)...\`、\`page.click...\` 等）；
-   - 执行毫秒级响应、确定性强、完全不消耗大模型 API 额度。
+### 1. 开发实现阶段（Focus & Flow）
+- **专注代码实现，避免流程打断**：在编写组件、函数与状态逻辑期间，**严禁频繁触发慢速 E2E 测试**；
+- **零 Token 快速自测**：如有需要，日常断言优先使用原生 Playwright API（\`expect(locator)...\`、\`page.click...\` 等），毫秒级完成，完全不消耗大模型 API 额度。
 
-2. **Midscene AI 视觉验证（仅在必要时使用）**：
-   - 适用场景：复杂 UI 视觉排版、Canvas 图表/图片内容断言、或关键主流程在**阶段性交付（Goal 完成节点）**时集中验收；
-   - 使用 \`aiAssert\` / \`aiQuery\` 验证视觉呈现。
-
-3. **执行与调试规范**：
-   - **精准跑测**：单次调试务必使用 \`-g "用例名"\` 针对性运行单条用例，严禁频繁全量跑测；
-   - **路由直达**：深层页面直接使用 \`gotoRoute('/path')\`，无需从首页漫游；
-   - **长效登录**：保持 \`BROWSER_MODE=auto\` 直连 Chrome 9222 端口或复用 Profile，避免重复模拟登录；
-   - **视觉自愈**：阶段性回归若有失败，查阅 \`midscene_run/report/\` 视觉报告定位修复。
+### 2. 最终交付验收阶段（Definition of Done 门禁）
+- **代码编写完成后统一验收**：凡涉及页面渲染、按钮交互、弹窗或深层路由的改动，**在交付前必须执行单条对应的 E2E 用例**：
+  \`${runCmd} -g "用例名"\`
+- **补齐用例规范**：若该功能尚无用例，必须在 \`${options.targetDir}/tests/\` 补齐对应 spec 文件并跑通；
+- **Midscene AI 视觉验收（仅在必要时使用）**：仅在复杂 UI 视觉排版、Canvas 图表/图片内容断言，或**阶段性交付（Goal 完成节点）**时使用 \`aiAssert\` / \`aiQuery\` 进行集中验收；
+- **路由秒级直达**：深层页面使用 \`gotoRoute('/path')\` 直达，禁止从首页漫游；
+- **自愈闭环**：若用例执行失败，查阅 \`midscene_run/report/\` 视觉报告定位修复，直至单条测试全绿才算交付完成。
 
 ## 📝 用例编写范式
 
@@ -66,7 +64,7 @@ test('核心功能验证', async ({ gotoRoute, page, aiAssert }) => {
 \`\`\`
 
 ## 🛠️ 常用命令速查
-- **跑单条用例**：\`${runCmd} -g "用例名"\`
+- **跑单条用例（最终验收必跑）**：\`${runCmd} -g "用例名"\`
 - **启动调试浏览器（扫码登录一次）**：\`${chromeCmd}\`
 - **Web 可视化看板**：\`${platformCmd}\`
 - **环境自检**：\`${doctorCmd}\`
