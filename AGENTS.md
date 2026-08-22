@@ -22,7 +22,8 @@
 1. **轻量极简原则**：避免过度设计，绝不为单一实现引入冗余的接口抽象；
 2. **零多余依赖**：优先使用 Node.js 原生标准库（`http`, `fs`, `path`, `child_process`），避免引入体积庞大的第三方框架；
 3. **Node 24 基线**：本仓库与根目录集成模式以 Node >= 24 为目标运行环境；老项目通过 Isolated Workspace 隔离；
-4. **TSDoc 完整性**：所有公共导出的函数、类型与选项必须具备完整的 TSDoc 注释（含 `@param`, `@returns`, `@example`）。
+4. **TSDoc 完整性**：所有公共导出的函数、类型与选项必须具备完整的 TSDoc 注释（含 `@param`, `@returns`, `@example`）；
+5. **版本号主动递增（Mandatory Version Bump）**：每次完成功能迭代、重构或 Bug 修复并准备交付/提交前，**必须主动递增 `package.json` 中的 patch 版本号**（并在 `src/init/templates.ts` 中同步更新依赖版本号），执行 `pnpm build` 重新构建，确保 `dist/` 产物最新，以便用户 `git push main` 后直接触发 GitHub Actions 自动发布最新 npm 包。
 
 ---
 
