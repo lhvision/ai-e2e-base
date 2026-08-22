@@ -136,13 +136,22 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
       cache: options.cacheId ? { id: options.cacheId } : undefined,
     }),
 
-    // 2. 路由直达跳转辅助函数（智能等待页面加载与客户端路由稳定）
-    gotoRoute: async ({ page }, use) => {
+    // 2. 路由直达跳转辅助函数（智能解析相对路径、结合 baseURL 拼接并等待页面稳定）
+    gotoRoute: async ({ page, baseURL }, use) => {
       const gotoFn: GotoRouteFn = async (
         routePath: string,
         waitForState: 'networkidle' | 'load' | 'domcontentloaded' = 'load',
       ) => {
-        await page.goto(routePath, { waitUntil: 'load' })
+        let targetUrl = routePath
+        if (baseURL && !routePath.startsWith('http://') && !routePath.startsWith('https://')) {
+          try {
+            targetUrl = new URL(routePath, baseURL).toString()
+          } catch {
+            targetUrl = routePath
+          }
+        }
+
+        await page.goto(targetUrl, { waitUntil: 'load' })
         if (waitForState && waitForState !== 'load') {
           try {
             await page.waitForLoadState(waitForState, { timeout: 5000 })
@@ -154,7 +163,7 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
     },
 
     // 3. 增强 page fixture：根据模式智能路由 (CDP 直连 / 持久化 Profile / 纯本地 Launch)
-    page: async ({ playwright: _playwright }, use) => {
+    page: async ({ playwright: _playwright, baseURL }, use) => {
       let page: Page
       let cdpBrowser: Browser | null = null
       let persistentContext: BrowserContext | null = null
@@ -191,7 +200,8 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
       if (effectiveMode === 'cdp') {
         // 模式 A：CDP 直连模式（零内核下载，复用已运行 Chrome）
         cdpBrowser = await chromium.connectOverCDP(cdpUrl)
-        const context = cdpBrowser.contexts()[0] || (await cdpBrowser.newContext({ viewport }))
+        const context =
+          cdpBrowser.contexts()[0] || (await cdpBrowser.newContext({ viewport, baseURL }))
         page = context.pages()[0] || (await context.newPage())
         await use(page)
       } else if (effectiveMode === 'persistent') {
@@ -199,6 +209,7 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
         persistentContext = await chromium.launchPersistentContext(userDataDir, {
           headless,
           viewport,
+          baseURL,
         })
         page = persistentContext.pages()[0] || (await persistentContext.newPage())
         try {
@@ -209,7 +220,7 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
       } else {
         // 模式 C：标准本地内核模式（Playwright 自带的隔离沙箱）
         standardBrowser = await chromium.launch({ headless })
-        const context = await standardBrowser.newContext({ viewport })
+        const context = await standardBrowser.newContext({ viewport, baseURL })
         page = await context.newPage()
         try {
           await use(page)
