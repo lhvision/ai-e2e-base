@@ -61,6 +61,7 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
               --headless                  以无头模式在后台拉起 Chrome 实例
 
   run       运行 Playwright + Midscene 测试用例 (支持 .spec.ts / .yaml 文件)
+            别名: test
             选项:
               -g <regex>                  按用例标题或分组正则过滤执行
               [files...]                  指定待执行的一个或多个测试文件
@@ -212,7 +213,7 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
     return
   }
 
-  if (command === 'run') {
+  if (command === 'run' || command === 'test') {
     const passArgs = args.slice(1)
     const grepIdx = passArgs.indexOf('-g')
     const grep = grepIdx !== -1 ? passArgs[grepIdx + 1] : undefined

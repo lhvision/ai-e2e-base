@@ -220,7 +220,7 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
         if (!pkg.scripts['ai-e2e:chrome']) pkg.scripts['ai-e2e:chrome'] = 'ai-e2e chrome'
         if (!pkg.scripts['ai-e2e:platform']) pkg.scripts['ai-e2e:platform'] = 'ai-e2e platform'
         if (!pkg.scripts['ai-e2e:yaml']) pkg.scripts['ai-e2e:yaml'] = 'ai-e2e yaml'
-        if (!pkg.scripts['ai-e2e:test'] && !pkg.scripts['test:e2e']) pkg.scripts['ai-e2e:test'] = 'playwright test'
+        if (!pkg.scripts['ai-e2e:test'] && !pkg.scripts['test:e2e']) pkg.scripts['ai-e2e:test'] = 'ai-e2e run'
         fs.writeFileSync(rootPkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
       } catch {}
     }
@@ -276,7 +276,7 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
     console.log(`  1. 填写大模型 Key:       在 .env 中填入 MIDSCENE_MODEL_API_KEY`)
     console.log(`  2. 运行环境自检:         pnpm ai-e2e:doctor`)
     console.log(`  3. 启动可视化看板:       pnpm ai-e2e:platform`)
-    console.log(`  4. 运行首条用例:         pnpm exec playwright test ${targetDir}/tests/example.spec.ts`)
+    console.log(`  4. 运行首条用例:         pnpm ai-e2e:test ${targetDir}/tests/example.spec.ts`)
     console.log(`  5. 让 AI 开始写测并回归:   将 AGENTS.md 告知 AI Agent 即可！\n`)
   }
 }

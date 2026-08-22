@@ -13,8 +13,8 @@ export interface TemplateOptions {
  */
 export function getAgentsMdTemplate(options: TemplateOptions): string {
   const runCmd = options.isIsolated
-    ? `cd ${options.targetDir} && pnpm exec playwright test tests/example.spec.ts`
-    : `pnpm exec playwright test ${options.targetDir}/tests/example.spec.ts`
+    ? `cd ${options.targetDir} && pnpm test tests/example.spec.ts`
+    : `pnpm ai-e2e:test ${options.targetDir}/tests/example.spec.ts`
 
   const chromeCmd = options.isIsolated
     ? `cd ${options.targetDir} && pnpm chrome`
@@ -204,7 +204,7 @@ export function getIsolatedPackageJsonTemplate(packageName = '@lhvision/ai-e2e-b
     "node": ">=24.0.0"
   },
   "scripts": {
-    "test": "playwright test",
+    "test": "ai-e2e run",
     "test:ui": "playwright test --ui",
     "yaml": "ai-e2e yaml",
     "platform": "ai-e2e platform",
