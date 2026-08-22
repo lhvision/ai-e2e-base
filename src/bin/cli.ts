@@ -26,7 +26,6 @@ async function main() {
     !command ||
     args.includes('-h') ||
     args.includes('--help') ||
-    args.includes('--hlep') ||
     command === 'help'
   ) {
     console.log(`
@@ -63,7 +62,9 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
   run       运行 Playwright + Midscene 测试用例 (支持 .spec.ts / .yaml 文件)
             别名: test
             选项:
-              -g <regex>                  按用例标题或分组正则过滤执行
+              -g, --grep <regex>          按用例标题或分组正则过滤执行
+              --headed                    以有头模式显示浏览器窗口运行 (默认: 无头静默执行)
+              --headless                  以无头模式在后台静默运行
               [files...]                  指定待执行的一个或多个测试文件
 
   yaml      执行独立 Midscene YAML 自动化脚本
@@ -215,17 +216,34 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
 
   if (command === 'run' || command === 'test') {
     const passArgs = args.slice(1)
-    const grepIdx = passArgs.indexOf('-g')
-    const grep = grepIdx !== -1 ? passArgs[grepIdx + 1] : undefined
+    const isHeaded = passArgs.includes('--headed')
+    const isHeadless = passArgs.includes('--headless')
 
+    if (isHeaded) {
+      process.env.HEADLESS = 'false'
+    } else if (isHeadless) {
+      process.env.HEADLESS = 'true'
+    }
+
+    let grep: string | undefined
     const specFiles: string[] = []
+
     for (let i = 0; i < passArgs.length; i++) {
-      if (passArgs[i] === '-g') {
-        i++ // 跳过 -g 的参数值
+      const arg = passArgs[i]
+      if (arg === '-g' || arg === '--grep') {
+        grep = passArgs[i + 1]
+        i++ // 跳过 -g/--grep 的参数值
         continue
       }
-      if (!passArgs[i].startsWith('-')) {
-        specFiles.push(passArgs[i])
+      if (arg.startsWith('--grep=')) {
+        grep = arg.slice('--grep='.length)
+        continue
+      }
+      if (arg === '--headed' || arg === '--headless') {
+        continue
+      }
+      if (!arg.startsWith('-')) {
+        specFiles.push(arg)
       }
     }
 
@@ -244,6 +262,8 @@ AI E2E 自动化测试命令行工具 (@lhvision/ai-e2e-base)
     console.log('🧪 正在执行测试...')
     const result = await runPlaywright({
       grep,
+      headed: isHeaded,
+      headless: isHeadless,
       specFiles: specFiles.length > 0 ? specFiles : undefined,
       onLine: (line) => console.log(line),
     })

@@ -89,6 +89,9 @@ MIDSCENE_MODEL_FAMILY=
 # 2. 浏览器与登录态配置 (可选: auto | cdp | persistent | launch，默认 auto)
 BROWSER_MODE=auto
 
+# 3. 运行模式 (默认 true 静默无头执行，设为 false 可在本地弹出有头窗口肉眼排查)
+HEADLESS=true
+
 # 指定登录态隔离配置名称（默认保存在 ~/.chrome-profiles/agent-profile-1）
 CHROME_PROFILE=agent-profile-1
 
@@ -272,8 +275,8 @@ npx ai-e2e chrome --show
 # 启动后台 Chrome 调试实例
 npx ai-e2e chrome [--headless]
 
-# 运行测试并支持文件/标题过滤
-npx ai-e2e run [file] [-g "用例名"]
+# 运行测试并支持文件/标题过滤（默认无头静默运行，支持 --headed 弹出窗口排查）
+npx ai-e2e run [file] [-g, --grep "用例名"] [--headed | --headless]
 
 # 执行独立 Midscene YAML 脚本
 npx ai-e2e yaml <file.yaml>

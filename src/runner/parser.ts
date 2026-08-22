@@ -46,32 +46,49 @@ export function parseSpecFile(filePath: string): ParsedTestCase[] {
   const lines = content.split('\n')
   const cases: ParsedTestCase[] = []
 
-  let currentDescribe: string | undefined
-  const describeRegex = /test\.describe(?:\.only|\.skip)?\s*\(\s*['"`](.*?)['"`]/
-  const testRegex = /test(?:\.only|\.skip)?\s*\(\s*['"`](.*?)['"`]/
+  const describeStack: { title: string; startDepth: number }[] = []
+  let currentBraceDepth = 0
+
+  const describeRegex = /test\.describe(?:\.only|\.skip|\.serial|\.parallel)?\s*\(\s*['"`](.*?)['"`]/
+  const testRegex = /test(?:\.only|\.skip|\.fixme)?\s*\(\s*['"`](.*?)['"`]/
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const lineNum = i + 1
 
+    // 检查闭合括号并弹出已结束的 describe 作用域
+    const openCount = (line.match(/\{/g) || []).length
+    const closeCount = (line.match(/\}/g) || []).length
+
     const describeMatch = line.match(describeRegex)
     if (describeMatch) {
-      currentDescribe = describeMatch[1]
-      continue
+      describeStack.push({
+        title: describeMatch[1],
+        startDepth: currentBraceDepth,
+      })
+    } else {
+      const testMatch = line.match(testRegex)
+      if (testMatch) {
+        const title = testMatch[1]
+        const describeTitle = describeStack.map((d) => d.title).join(' > ')
+        const fullTitle = describeTitle ? `${describeTitle} > ${title}` : title
+        cases.push({
+          id: `${path.basename(filePath)}:${lineNum}:${title}`,
+          title,
+          fullTitle,
+          file: filePath,
+          line: lineNum,
+          describe: describeTitle || undefined,
+        })
+      }
     }
 
-    const testMatch = line.match(testRegex)
-    if (testMatch) {
-      const title = testMatch[1]
-      const fullTitle = currentDescribe ? `${currentDescribe} > ${title}` : title
-      cases.push({
-        id: `${path.basename(filePath)}:${lineNum}:${title}`,
-        title,
-        fullTitle,
-        file: filePath,
-        line: lineNum,
-        describe: currentDescribe,
-      })
+    currentBraceDepth += openCount - closeCount
+    while (
+      describeStack.length > 0 &&
+      currentBraceDepth <= describeStack[describeStack.length - 1].startDepth
+    ) {
+      describeStack.pop()
     }
   }
 

@@ -40,3 +40,7 @@ _Avoid_: Auto fix, repair cycle, agent loop
 Directly navigating to deep target URLs (`gotoRoute`) leveraging persistent authentication sessions, bypassing repetitive multi-step UI traversal from the home page.
 _Avoid_: Page roaming, step navigation, manual login flow
 
+**Silent Headless Execution**:
+Defaulting to background, non-intrusive headless browser instances for standard sandbox (`launch`) and profile-mounted (`persistent`) modes, preventing window popups and focus interruptions during active AI coding sessions.
+_Avoid_: Background runner, silent browser, headless daemon
+

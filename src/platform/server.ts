@@ -73,6 +73,8 @@ export function startPlatformServer(
 
   const runsJsonPath = options.runsJsonPath ?? path.join(rootDir, 'runs.json')
 
+  let isExecuting = false
+
   const server = http.createServer(async (req, res) => {
     const reqUrl = req.url || '/'
     const parsedUrl = new URL(reqUrl, `http://${host}:${port}`)
@@ -116,14 +118,38 @@ export function startPlatformServer(
 
     // 3. API: 执行测试 (POST /api/run)
     if (pathname === '/api/run' && method === 'POST') {
+      if (isExecuting) {
+        res.writeHead(409, { 'Content-Type': 'application/json; charset=utf-8' })
+        res.end(
+          JSON.stringify({
+            code: 1,
+            success: false,
+            durationMs: 0,
+            results: [],
+            rawOutput: '[Platform] 当前已有正在执行中的测试任务，请稍候...',
+          }),
+        )
+        return
+      }
+
       let body = ''
       req.on('data', (chunk) => {
         body += chunk
       })
       req.on('end', async () => {
+        isExecuting = true
         try {
           const payload = body ? JSON.parse(body) : {}
-          const { grep, specFiles } = payload
+          const rawGrep = typeof payload.grep === 'string' ? payload.grep.trim() : undefined
+          const grep = rawGrep && rawGrep.length > 0 ? rawGrep : undefined
+
+          let specFiles: string[] | undefined
+          if (Array.isArray(payload.specFiles)) {
+            specFiles = payload.specFiles
+              .filter((f: unknown): f is string => typeof f === 'string' && !f.startsWith('-'))
+              .map((f: string) => f.trim())
+              .filter(Boolean)
+          }
 
           const runResult = await runPlaywright({
             projectDir: rootDir,
@@ -147,10 +173,12 @@ export function startPlatformServer(
             if (fs.existsSync(runsJsonPath)) {
               existingRuns = JSON.parse(fs.readFileSync(runsJsonPath, 'utf-8'))
             }
-            existingRuns.unshift(record)
-            // 只保留最近 50 次记录
-            if (existingRuns.length > 50) existingRuns = existingRuns.slice(0, 50)
-            fs.writeFileSync(runsJsonPath, JSON.stringify(existingRuns, null, 2), 'utf-8')
+            if (Array.isArray(existingRuns)) {
+              existingRuns.unshift(record)
+              // 只保留最近 50 次记录
+              if (existingRuns.length > 50) existingRuns = existingRuns.slice(0, 50)
+              fs.writeFileSync(runsJsonPath, JSON.stringify(existingRuns, null, 2), 'utf-8')
+            }
           } catch (e) {
             console.warn('[Platform] 写入 runs.json 失败:', e)
           }
@@ -169,6 +197,8 @@ export function startPlatformServer(
               rawOutput: `[执行异常] ${message}`,
             }),
           )
+        } finally {
+          isExecuting = false
         }
       })
       return
@@ -188,10 +218,17 @@ export function startPlatformServer(
     }
 
     // 5. 静态文件服务：Midscene 视觉 HTML 报告 (/midscene_run/report/*)
+    // 严格限制路径在 midscene_run/report 目录内，杜绝路径穿越漏洞
     if (pathname.startsWith('/midscene_run/report/')) {
       const relativeFile = pathname.replace('/midscene_run/report/', '')
-      const reportFile = path.join(rootDir, 'midscene_run', 'report', relativeFile)
-      if (fs.existsSync(reportFile) && fs.statSync(reportFile).isFile()) {
+      const reportDir = path.resolve(rootDir, 'midscene_run', 'report')
+      const reportFile = path.resolve(reportDir, decodeURIComponent(relativeFile))
+
+      if (
+        reportFile.startsWith(reportDir + path.sep) &&
+        fs.existsSync(reportFile) &&
+        fs.statSync(reportFile).isFile()
+      ) {
         const ext = path.extname(reportFile).toLowerCase()
         let contentType = 'text/html'
         if (ext === '.json') contentType = 'application/json'

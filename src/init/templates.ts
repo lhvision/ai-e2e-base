@@ -134,6 +134,9 @@ MIDSCENE_MODEL_FAMILY=
 # 浏览器运行模式: auto | cdp | persistent | launch (默认 auto)
 BROWSER_MODE=auto
 
+# 是否以无头模式静默执行 (默认 true，设为 false 则弹出有头浏览器窗口)
+HEADLESS=true
+
 # 登录态 Profile 名称 (保存在 ~/.chrome-profiles/agent-profile-1)
 CHROME_PROFILE=agent-profile-1
 
@@ -192,7 +195,10 @@ export function getNpmrcTemplate(): string {
 /**
  * 生成隔离工作区专属 package.json 模板
  */
-export function getIsolatedPackageJsonTemplate(packageName = '@lhvision/ai-e2e-base'): string {
+export function getIsolatedPackageJsonTemplate(
+  packageName = '@lhvision/ai-e2e-base',
+  version = '^0.1.4',
+): string {
   return `{
   "name": "project-ai-e2e",
   "version": "0.1.0",
@@ -211,7 +217,7 @@ export function getIsolatedPackageJsonTemplate(packageName = '@lhvision/ai-e2e-b
     "install:no-browser": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm install"
   },
   "dependencies": {
-    "${packageName}": "^0.1.3",
+    "${packageName}": "${version.startsWith('^') ? version : `^${version}`}",
     "@midscene/web": "^1.10.12",
     "@playwright/test": "^1.62.1",
     "dotenv": "^16.4.7"

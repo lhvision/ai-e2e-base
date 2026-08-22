@@ -511,8 +511,9 @@ export function getPlatformUiHtml(title = 'AI E2E 回归测试平台'): string {
       results.forEach(r => {
         const tr = document.createElement('tr');
         const statusClass = r.status === 'passed' ? 'passed' : 'failed';
-        const reportCell = r.midsceneReportUrl 
-          ? '<a class="report-link" href="' + r.midsceneReportUrl + '" target="_blank">🔍 查看 Midscene 视觉报告 ↗</a>'
+        const safeReportUrl = r.midsceneReportUrl ? escapeHtml(encodeURI(r.midsceneReportUrl)) : '';
+        const reportCell = safeReportUrl 
+          ? '<a class="report-link" href="' + safeReportUrl + '" target="_blank">🔍 查看 Midscene 视觉报告 ↗</a>'
           : '<span style="color: var(--accents-3)">无视觉报告</span>';
 
         tr.innerHTML = 

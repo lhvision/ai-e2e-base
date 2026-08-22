@@ -3,13 +3,34 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { getDefaultChromePath, getDefaultUserDataDir, isCdpAlive } from '../chrome/index.js'
 
-// 尝试加载当前目录或上级目录的 .env
-if (fs.existsSync('.env')) {
-  dotenv.config({ path: '.env' })
-} else if (fs.existsSync(path.resolve('..', '.env'))) {
-  dotenv.config({ path: path.resolve('..', '.env') })
-} else if (fs.existsSync(path.resolve('../..', '.env'))) {
-  dotenv.config({ path: path.resolve('../..', '.env') })
+let envLoaded = false
+
+/**
+ * 显式加载当前目录或上级目录中的 .env 配置文件。
+ */
+export function loadEnvConfig(): void {
+  if (envLoaded) return
+  envLoaded = true
+  if (fs.existsSync('.env')) {
+    dotenv.config({ path: '.env' })
+  } else if (fs.existsSync(path.resolve('..', '.env'))) {
+    dotenv.config({ path: path.resolve('..', '.env') })
+  } else if (fs.existsSync(path.resolve('../..', '.env'))) {
+    dotenv.config({ path: path.resolve('../..', '.env') })
+  }
+}
+
+function doesExecutableExist(cmdOrPath: string): boolean {
+  if (path.isAbsolute(cmdOrPath) || cmdOrPath.includes('/') || cmdOrPath.includes('\\')) {
+    return fs.existsSync(cmdOrPath)
+  }
+  const envPath = process.env.PATH || ''
+  const dirs = envPath.split(path.delimiter)
+  for (const dir of dirs) {
+    const full = path.join(dir, cmdOrPath)
+    if (fs.existsSync(full)) return true
+  }
+  return false
 }
 
 /**
@@ -50,6 +71,7 @@ export interface AiE2eConfig {
  * @returns 结构化配置对象
  */
 export function getAiE2eConfig(): AiE2eConfig {
+  loadEnvConfig()
   const host = process.env.CDP_HOST || '127.0.0.1'
   const port = Number(process.env.CDP_PORT || 9222)
   const url = process.env.CDP_URL || `http://${host}:${port}`
@@ -67,7 +89,8 @@ export function getAiE2eConfig(): AiE2eConfig {
   const profileName =
     process.env.CHROME_PROFILE || process.env.CHROME_PROFILE_NAME || 'agent-profile-1'
   const userDataDir = process.env.USER_DATA_DIR || getDefaultUserDataDir(profileName)
-  const headless = process.env.HEADLESS === 'true'
+  // 默认静默无头执行 (Silent Headless Execution)，仅在显式设置 HEADLESS=false 时打开有头窗口
+  const headless = process.env.HEADLESS !== 'false'
 
   const baseUrl =
     process.env.MIDSCENE_MODEL_BASE_URL ||
@@ -133,7 +156,7 @@ export interface EnvironmentDiagnostic {
 export async function checkEnvironment(): Promise<EnvironmentDiagnostic> {
   const cfg = getAiE2eConfig()
   const chromePath = getDefaultChromePath()
-  const chromeExists = fs.existsSync(chromePath) || process.platform === 'linux'
+  const chromeExists = doesExecutableExist(chromePath)
   const cdpAlive = await isCdpAlive(cfg.browser.port, cfg.browser.host)
   const hasModelApiKey = Boolean(cfg.midscene.apiKey)
 

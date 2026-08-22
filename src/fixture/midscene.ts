@@ -21,7 +21,6 @@ export type GotoRouteFn = (
  * 扩展 Fixture 导出的上下文类型
  */
 export type ExtendedAiFixtureType = PlayWrightAiFixtureType & {
-  cdpBrowserContext: BrowserContext | null
   /**
    * 路由直达跳转辅助方法（自动拼接 baseURL，并等待网络或 DOM 就绪）。
    * 适合深层页面（如 `/detail/123`）直接测试，无需从首页逐级漫游点击。
@@ -85,7 +84,7 @@ export interface CreateAiFixtureOptions {
   autoLaunchChrome?: boolean
 
   /**
-   * 是否以无头模式运行（默认 false）。
+   * 是否以无头模式运行（默认 true，遵循静默无头执行策略）。
    */
   headless?: boolean
 
@@ -199,16 +198,22 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
           viewport,
         })
         page = persistentContext.pages()[0] || (await persistentContext.newPage())
-        await use(page)
-        await persistentContext.close()
+        try {
+          await use(page)
+        } finally {
+          await persistentContext.close()
+        }
       } else {
         // 模式 C：标准本地内核模式（Playwright 自带的隔离沙箱）
         standardBrowser = await chromium.launch({ headless })
         const context = await standardBrowser.newContext({ viewport })
         page = await context.newPage()
-        await use(page)
-        await context.close()
-        await standardBrowser.close()
+        try {
+          await use(page)
+        } finally {
+          await context.close()
+          await standardBrowser.close()
+        }
       }
     },
   })

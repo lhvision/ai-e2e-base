@@ -10,6 +10,10 @@ export interface RunPlaywrightOptions {
   projectDir?: string
   /** 用例标题/分组过滤正则 (-g 参数) */
   grep?: string
+  /** 是否以有头模式打开浏览器窗口 */
+  headed?: boolean
+  /** 是否以无头模式静默运行 */
+  headless?: boolean
   /** 指定执行的 spec 文件列表 */
   specFiles?: string[]
   /** 自定义环境变量注入 */
@@ -102,6 +106,10 @@ export async function runPlaywright(
 
   const args = [...baseArgs, '--reporter=json,list']
 
+  if (options.headed || process.env.HEADLESS === 'false') {
+    args.push('--headed')
+  }
+
   if (options.grep) {
     args.push('-g', options.grep)
   }
@@ -114,6 +122,8 @@ export async function runPlaywright(
 
   const customEnv = {
     ...process.env,
+    ...(options.headed ? { HEADLESS: 'false' } : {}),
+    ...(options.headless ? { HEADLESS: 'true' } : {}),
     ...options.env,
   }
 
@@ -160,27 +170,56 @@ export async function runPlaywright(
       options.onStderr?.(text)
     })
 
-    cp.on('close', (code) => {
-      const durationMs = Date.now() - startTime
-      let parsedJson: unknown = null
+function extractPlaywrightJson(text: string): unknown {
+  const startIdx = text.indexOf('{"config":')
+  if (startIdx === -1) return null
 
-      // 从输出中截取 JSON 报告（Playwright JSON 报告以 {"config": 开头）
-      const jsonStartIndex = stdoutBuffer.indexOf('{"config":')
-      if (jsonStartIndex !== -1) {
-        try {
-          const jsonStr = stdoutBuffer.slice(jsonStartIndex)
-          parsedJson = JSON.parse(jsonStr)
-        } catch {
-          const lastOpen = stdoutBuffer.lastIndexOf('{"config":')
-          const lastClose = stdoutBuffer.lastIndexOf('}')
-          if (lastOpen !== -1 && lastClose > lastOpen) {
-            try {
-              parsedJson = JSON.parse(stdoutBuffer.slice(lastOpen, lastClose + 1))
-            } catch {}
+  // 尝试直接解析
+  try {
+    return JSON.parse(text.slice(startIdx).trim())
+  } catch {}
+
+  // 通过大括号平衡匹配精确定位 JSON Object 闭合边界
+  let depth = 0
+  let inString = false
+  let isEscaped = false
+
+  for (let i = startIdx; i < text.length; i++) {
+    const char = text[i]
+    if (isEscaped) {
+      isEscaped = false
+      continue
+    }
+    if (char === '\\') {
+      if (inString) isEscaped = true
+      continue
+    }
+    if (char === '"') {
+      inString = !inString
+      continue
+    }
+    if (!inString) {
+      if (char === '{') {
+        depth++
+      } else if (char === '}') {
+        depth--
+        if (depth === 0) {
+          try {
+            return JSON.parse(text.slice(startIdx, i + 1))
+          } catch {
+            return null
           }
         }
       }
+    }
+  }
 
+  return null
+}
+
+    cp.on('close', (code) => {
+      const durationMs = Date.now() - startTime
+      const parsedJson = extractPlaywrightJson(stdoutBuffer)
       const results = parsedJson ? parsePlaywrightJsonReport(parsedJson, projectDir) : []
 
       resolve({
