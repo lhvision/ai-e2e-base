@@ -153,16 +153,22 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
   // 4. 写入 cases.json (用例分组与优先级元数据)
   fs.writeFileSync(path.join(targetFullPath, 'cases.json'), getCasesJsonTemplate(), 'utf-8')
 
-  // 5. 写入/增量更新 AGENTS.md (专供 AI Agent 阅读的自愈闭环规则)
-  fs.writeFileSync(
-    path.join(targetFullPath, 'AGENTS.md'),
-    getAgentsMdTemplate(templateOptions),
-    'utf-8',
-  )
+  // 5. 写入/增量更新 AGENTS.md (专供 AI Agent 阅读的测试规范与自愈规则)
+  if (isIsolated) {
+    fs.writeFileSync(
+      path.join(targetFullPath, 'AGENTS.md'),
+      getAgentsMdTemplate(templateOptions),
+      'utf-8',
+    )
+  }
   const rootAgentsMd = path.resolve(process.cwd(), 'AGENTS.md')
   if (fs.existsSync(rootAgentsMd)) {
     const existingContent = fs.readFileSync(rootAgentsMd, 'utf-8')
-    if (!existingContent.includes('AI E2E') && !existingContent.includes('ai-e2e')) {
+    if (
+      !existingContent.includes('AI E2E') &&
+      !existingContent.includes('ai-e2e') &&
+      !existingContent.includes('E2E 测试准则')
+    ) {
       fs.appendFileSync(rootAgentsMd, '\n\n' + getAgentsMdTemplate(templateOptions), 'utf-8')
     }
   } else {
@@ -236,7 +242,11 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
   }
 
   console.log('\n✨ [ai-e2e init] 初始化完成！生成文件清单：')
-  console.log(`  📄 ${targetDir}/AGENTS.md           (AI Agent 自我修复测试指引)`)
+  if (isIsolated) {
+    console.log(`  📄 ${targetDir}/AGENTS.md           (AI Agent 隔离工作区测试指南)`)
+  } else {
+    console.log(`  📄 AGENTS.md                       (项目根目录 AI 协作准则)`)
+  }
   console.log(`  📄 ${targetDir}/cases.json         (用例分组与优先级元数据)`)
   console.log(`  📄 ${targetDir}/tests/fixture.ts   (增强版 Playwright × Midscene Fixture)`)
   console.log(`  📄 ${targetDir}/tests/example.spec.ts (基础 AI 视觉断言示例用例)`)
@@ -267,7 +277,7 @@ export async function runInit(options: InitCliOptions = {}): Promise<void> {
     console.log(`  2. 运行环境自检:         pnpm ai-e2e:doctor`)
     console.log(`  3. 启动可视化看板:       pnpm ai-e2e:platform`)
     console.log(`  4. 运行首条用例:         pnpm exec playwright test ${targetDir}/tests/example.spec.ts`)
-    console.log(`  5. 让 AI 开始写测并回归:   将 ${targetDir}/AGENTS.md 告知 AI Agent 即可！\n`)
+    console.log(`  5. 让 AI 开始写测并回归:   将 AGENTS.md 告知 AI Agent 即可！\n`)
   }
 }
 
