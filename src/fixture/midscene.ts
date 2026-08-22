@@ -89,7 +89,7 @@ export interface CreateAiFixtureOptions {
   headless?: boolean
 
   /**
-   * 默认浏览器视口分辨率（默认 { width: 1280, height: 900 }）。
+   * 浏览器视口分辨率（可选，未指定时遵循 playwright.config.ts 中的 use.viewport 或 Playwright 默认设置）。
    */
   viewport?: { width: number; height: number }
 }
@@ -128,7 +128,7 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
   const userDataDir =
     options.userDataDir ?? cfg.browser.userDataDir ?? getDefaultUserDataDir(profileName)
   const headless = options.headless ?? cfg.browser.headless
-  const viewport = options.viewport ?? { width: 1280, height: 900 }
+  const viewport = options.viewport
 
   // 1. 挂载 Midscene AI 扩展方法 (ai, aiAssert, aiQuery, aiWaitFor, agentForPage 等)
   const aiExtended = base.extend<ExtendedAiFixtureType>({
@@ -201,14 +201,18 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
         // 模式 A：CDP 直连模式（零内核下载，复用已运行 Chrome）
         cdpBrowser = await chromium.connectOverCDP(cdpUrl)
         const context =
-          cdpBrowser.contexts()[0] || (await cdpBrowser.newContext({ viewport, baseURL }))
+          cdpBrowser.contexts()[0] ||
+          (await cdpBrowser.newContext({
+            ...(viewport ? { viewport } : {}),
+            baseURL,
+          }))
         page = context.pages()[0] || (await context.newPage())
         await use(page)
       } else if (effectiveMode === 'persistent') {
         // 模式 B：持久化 Profile 模式（保留 Cookies / 登录态 / LocalStorage）
         persistentContext = await chromium.launchPersistentContext(userDataDir, {
           headless,
-          viewport,
+          ...(viewport ? { viewport } : {}),
           baseURL,
         })
         page = persistentContext.pages()[0] || (await persistentContext.newPage())
@@ -220,7 +224,10 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
       } else {
         // 模式 C：标准本地内核模式（Playwright 自带的隔离沙箱）
         standardBrowser = await chromium.launch({ headless })
-        const context = await standardBrowser.newContext({ viewport, baseURL })
+        const context = await standardBrowser.newContext({
+          ...(viewport ? { viewport } : {}),
+          baseURL,
+        })
         page = await context.newPage()
         try {
           await use(page)

@@ -176,7 +176,7 @@ export function getNpmrcTemplate(): string {
  */
 export function getIsolatedPackageJsonTemplate(
   packageName = '@lhvision/ai-e2e-base',
-  version = '^0.1.4',
+  version = '^0.1.5',
 ): string {
   return `{
   "name": "project-ai-e2e",
