@@ -136,14 +136,17 @@ export function createAiFixture(options: CreateAiFixtureOptions = {}) {
       cache: options.cacheId ? { id: options.cacheId } : undefined,
     }),
 
-    // 2. 路由直达跳转辅助函数（智能等待网络或 DOM 就绪）
+    // 2. 路由直达跳转辅助函数（智能等待页面加载与客户端路由稳定）
     gotoRoute: async ({ page }, use) => {
-      const gotoFn: GotoRouteFn = async (routePath, waitForState = 'networkidle') => {
-        await page.goto(routePath)
-        try {
-          await page.waitForLoadState(waitForState, { timeout: 10_000 })
-        } catch {
-          await page.waitForLoadState('domcontentloaded')
+      const gotoFn: GotoRouteFn = async (
+        routePath: string,
+        waitForState: 'networkidle' | 'load' | 'domcontentloaded' = 'load',
+      ) => {
+        await page.goto(routePath, { waitUntil: 'load' })
+        if (waitForState && waitForState !== 'load') {
+          try {
+            await page.waitForLoadState(waitForState, { timeout: 5000 })
+          } catch {}
         }
         return page
       }

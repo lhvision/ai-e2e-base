@@ -28,44 +28,21 @@ export function getAgentsMdTemplate(options: TemplateOptions): string {
     ? `cd ${options.targetDir} && pnpm doctor`
     : `pnpm ai-e2e:doctor`
 
-  return `# E2E 测试准则与 AI 协作规范
+  return `## 🧪 E2E 测试准则与 AI 协作规范
 
-> 🎯 核心原则：**小步快跑用原生 Playwright，阶段交付/复杂视觉才用 Midscene AI**。编码过程禁止边改边频繁跑慢速 AI 断言打断流程，在功能改完后的**最终交付阶段统一执行单条 E2E 验收**，避免过度消耗 Token 与网络卡顿。
+> 🎯 **核心原则**：小步快跑用原生 Playwright，阶段交付/关键视觉才用 Midscene AI。**编码开发中严禁边改边频繁触发慢速 E2E 测试**，避免打断工作流与浪费 Token。
 
-## ⚡ 协作流程与验证策略
-
-### 1. 开发实现阶段（Focus & Flow）
-- **专注代码实现，避免流程打断**：在编写组件、函数与状态逻辑期间，**严禁频繁触发慢速 E2E 测试**；
-- **零 Token 快速自测**：如有需要，日常断言优先使用原生 Playwright API（\`expect(locator)...\`、\`page.click...\` 等），毫秒级完成，完全不消耗大模型 API 额度。
-
-### 2. 最终交付验收阶段（Definition of Done 门禁）
-- **代码编写完成后统一验收**：凡涉及页面渲染、按钮交互、弹窗或深层路由的改动，**在交付前必须执行单条对应的 E2E 用例**：
+### 1. 最终交付验收门禁（Definition of Done）
+- **单条用例终验**：凡涉及页面渲染、交互按钮、数据渲染或深层路由，必须在功能全部写完后的**最终交付阶段**执行单条对应 E2E 用例：
   \`${runCmd} -g "用例名"\`
-- **补齐用例规范**：若该功能尚无用例，必须在 \`${options.targetDir}/tests/\` 补齐对应 spec 文件并跑通；
-- **Midscene AI 视觉验收（仅在必要时使用）**：仅在复杂 UI 视觉排版、Canvas 图表/图片内容断言，或**阶段性交付（Goal 完成节点）**时使用 \`aiAssert\` / \`aiQuery\` 进行集中验收；
-- **路由秒级直达**：深层页面使用 \`gotoRoute('/path')\` 直达，禁止从首页漫游；
-- **自愈闭环**：若用例执行失败，查阅 \`midscene_run/report/\` 视觉报告定位修复，直至单条测试全绿才算交付完成。
+- **补齐用例规范**：若该功能尚无用例，必须在 \`${options.targetDir}/tests/\` 补齐对应 spec 文件；
+- **断言分层范式**：日常断言优先使用原生 Playwright API（\`expect(locator)...\`，毫秒级 0 Token）；仅在复杂 UI 排版、Canvas/图片内容或阶段成果时使用 \`aiAssert\`；
+- **路由秒级直达**：用例使用 \`gotoRoute('/path')\` 直达目标页，禁止从首页漫游点击；
+- **自愈与报告排查**：若用例执行失败，查阅 \`midscene_run/report/\` 视觉报告定位修复，直至单条测试全绿才算交付完成。
 
-## 📝 用例编写范式
-
-\`\`\`ts
-import { test, expect } from './fixture'
-
-test('核心功能验证', async ({ gotoRoute, page, aiAssert }) => {
-  // 1. ⚡ 秒级直达深层路由
-  await gotoRoute('/comic/123')
-
-  // 2. ⚡ 日常断言：优先使用原生 Playwright（快、稳、零 Token 消耗）
-  await expect(page.locator('.header-title')).toBeVisible()
-
-  // 3. 🤖 关键视觉验收：必要时使用 Midscene AI 视觉断言
-  await aiAssert('页面顶部展示导航栏，主要区域展示漫画封面与开始阅读按钮')
-})
-\`\`\`
-
-## 🛠️ 常用命令速查
+### 2. 常用命令速查
 - **跑单条用例（最终验收必跑）**：\`${runCmd} -g "用例名"\`
-- **启动调试浏览器（扫码登录一次）**：\`${chromeCmd}\`
+- **启动调试浏览器（扫码登录一次持久化）**：\`${chromeCmd}\`
 - **Web 可视化看板**：\`${platformCmd}\`
 - **环境自检**：\`${doctorCmd}\`
 `
@@ -109,6 +86,7 @@ export default defineConfig({
     baseURL: '${options.baseUrl}',
     viewport: { width: 1280, height: 900 },
     trace: 'off',
+    ignoreHTTPSErrors: true,
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
@@ -116,6 +94,7 @@ export default defineConfig({
     url: '${options.baseUrl}',
     reuseExistingServer: true,
     timeout: 30 * 1000,
+    ignoreHTTPSErrors: true,
   },
 })
 `
